@@ -1,0 +1,33 @@
+name: Publicar HTML e APK
+on:
+  push:
+    tags: ['desktop-v*']
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Preparar teste de navegador
+        shell: pwsh
+        run: npm install --prefix "$env:RUNNER_TEMP/browser-test" --no-package-lock playwright-core@1.55.0
+      - name: Testar o HTML local no Chrome
+        shell: pwsh
+        run: |
+          $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
+          node desktop/check.cjs
+      - name: Publicar os dois downloads
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git show 25ef54b2153275e5f248fa04410520a3effdd74e:downloads/Save-It-1.1.0.apk > Save-It-1.1.0.apk
+          echo '5cf1f4b71a3cf5f72ffc5323ba1f61f40f621d6b2395cfb642e0e6ef30bcc8d1  Save-It-1.1.0.apk' | sha256sum -c -
+          gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.1.0.apk --verify-tag --latest --title 'Save It! para Windows e Android' --notes-file desktop/release.md

@@ -1,12 +1,17 @@
 # Save It!
 
-Aplicativo Android para guardar links em um mural visual. A interface usa Kotlin, Android Views e RecyclerView com colunas escalonadas. Requer Android 8.0 ou superior.
+Organizador de marcadores com uma edição Android em Kotlin e uma edição de computador em um arquivo HTML.
 
-## Instalar
+## Downloads
 
-Baixe o APK na seção [Releases](https://github.com/daadvi/Save-It/releases) pelo celular e abra o arquivo. Se o Android solicitar, autorize a instalação pelo navegador ou gerenciador usado para o download.
+Abra a [release mais recente](https://github.com/daadvi/Save-It/releases/latest) e escolha o arquivo do seu dispositivo.
 
-## Usar a coleção
+- **Windows:** baixe `Save-It.html`, guarde-o em uma pasta permanente e abra-o no navegador. Em **Criar atalho**, baixe o ZIP, extraia-o na pasta do HTML e mova `Save It!.url` para a Área de Trabalho. Deixe `Save-It.ico` junto do HTML. A imagem identifica o atalho e a aba do navegador. O Explorer pode exibir o ícone do navegador no próprio arquivo HTML.
+- **Android 8.0 ou superior:** baixe e abra o APK pelo celular. Caso solicitado, autorize a instalação pelo navegador ou gerenciador usado no download.
+
+O HTML funciona localmente por `file://`, inclusive sem conexão. As prévias externas precisam de internet. A coleção fica no armazenamento do navegador, associado ao caminho do arquivo. Use o mesmo navegador e exporte um backup JSON antes de mover o HTML ou limpar os dados. O backup também permite trocar a coleção com o Android.
+
+## Usar no Android
 
 - No Instagram ou em outro app, escolha **Compartilhar → Save It!** no menu do Android. Quando a publicação inclui um link, ele é salvo imediatamente no **Mural**, em **Sem pasta**. Não é preciso confirmar. Se o app enviar apenas um arquivo de vídeo, use a opção de compartilhar o link da publicação.
 - Para cadastrar um endereço manualmente, toque em **+ Link**. O app busca a imagem do conteúdo. Sites que não fornecem prévia aparecem com o domínio.

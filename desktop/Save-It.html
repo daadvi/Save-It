@@ -1,0 +1,2430 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#c9b9ff" />
+    <meta
+      name="description"
+      content="Salve o que te inspira. Organize links em pastas e volte às suas melhores descobertas."
+    />
+    <title>Save It! — seu canto da internet</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjQ2IiByeD0iOCIgZmlsbD0iI2M3YWFmYSIgc3Ryb2tlPSIjMjAxZjIyIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMTMgN2gyMnYzNGwtMTEtOC0xMSA4eiIgZmlsbD0iI2ZmZjJhMyIgc3Ryb2tlPSIjMjAxZjIyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4K"
+      type="image/svg+xml"
+    />
+    <style>
+      :root {
+        --paper: #f7f7f2;
+        --surface: #fff;
+        --ink: #202020;
+        --muted: #65655f;
+        --accent: #c9b9ff;
+        --line: 2px solid var(--ink);
+        --shadow: 4px 4px 0 var(--ink);
+        font-family: "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        font-size: 16px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      textarea {
+        -webkit-tap-highlight-color: transparent;
+      }
+      button,
+      a {
+        touch-action: manipulation;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+      }
+      a {
+        color: inherit;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible {
+        outline: 3px solid #6250dc;
+        outline-offset: 4px;
+      }
+      button {
+        background: var(--surface);
+      }
+      .skip {
+        position: fixed;
+        top: -100px;
+        z-index: 20;
+        background: var(--accent);
+        padding: 12px;
+      }
+      .skip:focus {
+        top: 10px;
+      }
+      .topbar {
+        height: 94px;
+        padding: 0 4.5%;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        border-bottom: var(--line);
+        background: var(--surface);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        text-decoration: none;
+        font:
+          700 39px "Segoe UI",
+          sans-serif;
+        letter-spacing: -2.7px;
+        gap: 8px;
+      }
+      .brand-icon {
+        width: 41px;
+        height: 41px;
+        display: grid;
+        place-items: center;
+        background: var(--accent);
+        border: var(--line);
+        font-size: 34px;
+        letter-spacing: 0;
+        transform: rotate(-8deg);
+        box-shadow: 2px 2px 0 var(--ink);
+      }
+      .brand-bang {
+        color: #7052ac;
+      }
+      .tagline {
+        font-size: 14px;
+        border-left: 1px solid #c6c6bd;
+        padding-left: 23px;
+        color: var(--muted);
+      }
+      .button {
+        border: var(--line);
+        box-shadow: var(--shadow);
+        border-radius: 5px;
+        padding: 13px 20px;
+        display: inline-flex;
+        gap: 9px;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        text-decoration: none;
+        transition:
+          transform 0.12s,
+          box-shadow 0.12s;
+      }
+      .button:hover {
+        transform: translate(-1px, -1px);
+        box-shadow: 5px 5px 0 var(--ink);
+      }
+      .button:active {
+        transform: translate(3px, 3px);
+        box-shadow: 1px 1px 0 var(--ink);
+      }
+      .button.primary {
+        background: var(--accent);
+      }
+      .button.small {
+        font-size: 14px;
+        padding: 9px 14px;
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .import-top {
+        margin-left: auto;
+      }
+      .local-badge {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+      .local-badge span {
+        width: 8px;
+        height: 8px;
+        border: 1px solid var(--ink);
+        background: #b4dba3;
+        border-radius: 50%;
+      }
+      main {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 45px 4.5% 150px;
+      }
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .eyebrow:before {
+        content: "";
+        width: 19px;
+        height: 3px;
+        background: var(--ink);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font:
+          700 clamp(32px, 3.6vw, 51px) / 1.14 "Segoe UI",
+          sans-serif;
+        letter-spacing: -2.2px;
+        margin: 12px 0;
+      }
+      h1 span {
+        display: inline-block;
+        background: var(--accent);
+        padding: 0 9px 3px;
+        transform: rotate(-2deg);
+      }
+      .hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 30px;
+        margin-bottom: 33px;
+      }
+      .hero p {
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .hero-sticker {
+        font-size: 38px;
+        line-height: 1;
+        transform: rotate(15deg);
+        margin-right: 10px;
+      }
+      .stats {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 14px;
+        color: var(--muted);
+        margin-top: 18px;
+      }
+      .stats b {
+        color: var(--ink);
+        font-family: "Segoe UI";
+        font-size: 17px;
+      }
+      .stats i {
+        width: 4px;
+        height: 4px;
+        background: #999;
+        border-radius: 50%;
+      }
+      .toolbar {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        margin-bottom: 19px;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        border: var(--line);
+        background: var(--surface);
+        padding: 0 14px;
+        border-radius: 5px;
+        gap: 10px;
+        flex: 1;
+        height: 48px;
+        max-width: 560px;
+      }
+      .search input {
+        border: 0;
+        outline: 0 !important;
+        width: 100%;
+        background: transparent;
+        color: var(--ink);
+        min-width: 0;
+      }
+      .keycap {
+        font-size: 12px;
+        border: 1px solid #aaa;
+        padding: 1px 5px;
+        border-radius: 3px;
+      }
+      .select {
+        border: var(--line);
+        background: var(--surface);
+        border-radius: 5px;
+        padding: 11px 35px 11px 12px;
+        max-width: 240px;
+        color: var(--ink);
+      }
+      .toolbar .sort {
+        margin-left: auto;
+      }
+      .chips {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 0 0 28px;
+      }
+      .chip {
+        border: 1.5px solid var(--ink);
+        padding: 7px 13px;
+        border-radius: 30px;
+        font-size: 14px;
+        background: var(--surface);
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .chip.active {
+        background: var(--ink);
+        color: var(--paper);
+      }
+      .chip .count {
+        font-size: 12px;
+        opacity: 0.65;
+      }
+      .demo-banner {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        background: #ebe8f7;
+        border: 1px dashed #8e81ad;
+        border-radius: 5px;
+        padding: 10px 14px;
+        margin-bottom: 23px;
+        color: #514466;
+        font-size: 13px;
+      }
+      .text-btn {
+        border: 0;
+        padding: 3px;
+        background: none;
+        text-decoration: underline;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .section-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        letter-spacing: 1.5px;
+        font-weight: 700;
+      }
+      .section-label:after {
+        content: "";
+        height: 1px;
+        background: #d4d4ca;
+        flex: 1;
+      }
+      .section-label span {
+        font-size: 12px;
+        color: var(--muted);
+        letter-spacing: 0;
+        font-weight: 400;
+      }
+      .masonry {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-auto-rows: 8px;
+        gap: 18px;
+        align-items: start;
+        grid-auto-flow: dense;
+      }
+      .card {
+        min-width: 0;
+      }
+      .card.wide {
+        grid-column: span 2;
+      }
+      .card-inner {
+        border: var(--line);
+        box-shadow: var(--shadow);
+        border-radius: 6px;
+        background: var(--surface);
+        overflow: hidden;
+        transition: transform 0.15s;
+      }
+      .card-inner:hover {
+        transform: translateY(-3px);
+      }
+      .cover {
+        position: relative;
+        display: block;
+        background: #dedbce;
+        border-bottom: var(--line);
+        overflow: hidden;
+        text-decoration: none;
+      }
+      .cover img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+      }
+      .cover:hover img {
+        transform: scale(1.035);
+      }
+      .cover .type-badge {
+        position: absolute;
+        top: 11px;
+        left: 11px;
+        background: #fff;
+        border: 1.5px solid #202020;
+        border-radius: 3px;
+        padding: 4px 7px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #202020;
+        display: flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .cover-fallback {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        background: var(--accent);
+        color: #202020;
+        font: 700 26px "Segoe UI";
+        padding: 20px;
+        text-align: center;
+        word-break: break-word;
+      }
+      .graphic .cover {
+        background: #c9b9ff;
+      }
+      .graphic-art {
+        height: 100%;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        color: #202020;
+        background: #c9b9ff;
+        position: relative;
+      }
+      .graphic-art strong {
+        font: 700 clamp(30px, 3vw, 48px) / 0.95 "Segoe UI";
+        letter-spacing: -2px;
+        z-index: 1;
+        max-width: 70%;
+      }
+      .graphic-art b {
+        position: absolute;
+        right: 14px;
+        bottom: 22px;
+        font-size: 115px;
+        line-height: 1;
+        transform: rotate(-15deg);
+        color: #fff5a4;
+        -webkit-text-stroke: 2px #202020;
+      }
+      .graphic-art small {
+        font-size: 11px;
+        letter-spacing: 2px;
+      }
+      .code-art {
+        height: 100%;
+        background: #c4e4d0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #202020;
+      }
+      .code-art b {
+        font: 700 62px "Segoe UI";
+        letter-spacing: -5px;
+      }
+      .code-art span {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .card-body {
+        padding: 15px 15px 12px;
+      }
+      .domain {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 7px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .domain img {
+        width: 13px;
+        height: 13px;
+      }
+      .card h3 {
+        font: 600 18px/1.3 "Segoe UI";
+        letter-spacing: -0.4px;
+        margin-bottom: 13px;
+      }
+      .card h3 a {
+        text-decoration: none;
+      }
+      .card h3 a:hover {
+        text-decoration: underline;
+      }
+      .card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 5px;
+      }
+      .folder-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 11px;
+        border: 1px solid #202020;
+        color: #202020;
+        border-radius: 3px;
+        padding: 4px 6px;
+        max-width: 75%;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .card-controls {
+        display: flex;
+        gap: 5px;
+      }
+      .icon-btn {
+        border: 1.5px solid var(--ink);
+        border-radius: 4px;
+        width: 29px;
+        height: 29px;
+        display: inline-grid;
+        place-items: center;
+        background: var(--surface);
+        padding: 0;
+      }
+      .icon-btn:hover {
+        background: var(--accent);
+      }
+      svg {
+        width: 19px;
+        height: 19px;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+      .icon-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+      .dock {
+        position: fixed;
+        z-index: 5;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 5px;
+        background: var(--surface);
+        border: var(--line);
+        border-radius: 12px;
+        box-shadow: 5px 5px 0 var(--ink);
+        padding: 8px;
+      }
+      .dock button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 19px;
+        border: 1.5px solid transparent;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .dock button.active {
+        background: var(--accent);
+        border-color: var(--ink);
+        box-shadow: 2px 2px 0 var(--ink);
+      }
+      .dock button:hover {
+        background: var(--accent);
+      }
+      .dock .divider {
+        border-left: 1px solid #d6d6cf;
+        margin: 8px 3px;
+      }
+      .folder-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+        margin: 25px 0 35px;
+      }
+      .folder-card {
+        position: relative;
+        border: var(--line);
+        border-radius: 6px;
+        box-shadow: var(--shadow);
+        background: var(--surface);
+        padding: 23px;
+        text-align: left;
+        min-height: 165px;
+      }
+      .folder-card:before {
+        content: "";
+        position: absolute;
+        left: 15px;
+        top: -10px;
+        width: 65px;
+        height: 12px;
+        background: var(--folder-color);
+        border: var(--line);
+        border-bottom: 0;
+        border-radius: 5px 5px 0 0;
+      }
+      .folder-card .folder-symbol {
+        color: #202020;
+        display: inline-flex;
+        background: var(--folder-color);
+        padding: 9px;
+        border: var(--line);
+        border-radius: 4px;
+        margin-bottom: 16px;
+      }
+      .folder-card h3 {
+        font: 600 19px "Segoe UI";
+      }
+      .folder-card p {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 7px;
+      }
+      .folder-card .edit-folder {
+        position: absolute;
+        top: 14px;
+        right: 12px;
+      }
+      .folder-open {
+        background: none;
+        border: 0;
+        padding: 0;
+        text-align: left;
+        width: 100%;
+        display: block;
+      }
+      .breadcrumbs {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+      }
+      .breadcrumbs button {
+        background: none;
+        border: 0;
+        padding: 0;
+        text-decoration: underline;
+      }
+      .breadcrumbs span {
+        color: var(--muted);
+      }
+      .empty {
+        border: 2px dashed #a4a497;
+        text-align: center;
+        padding: 65px 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      .empty .empty-icon {
+        font-size: 45px;
+        margin-bottom: 14px;
+      }
+      .empty h2 {
+        font: 600 25px "Segoe UI";
+        margin-bottom: 10px;
+      }
+      .empty p {
+        color: var(--muted);
+        margin-bottom: 24px;
+      }
+      .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 25px;
+        margin-top: 30px;
+      }
+      .panel {
+        background: var(--surface);
+        border: var(--line);
+        box-shadow: var(--shadow);
+        border-radius: 6px;
+        padding: 27px;
+      }
+      .panel h2 {
+        font: 600 23px "Segoe UI";
+        margin-bottom: 10px;
+      }
+      .panel p {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 20px;
+      }
+      .field input,
+      .field textarea,
+      .field select {
+        padding: 12px;
+        border: var(--line);
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--ink);
+        width: 100%;
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      .swatches {
+        display: flex;
+        gap: 12px;
+        margin: 15px 0;
+      }
+      .swatch {
+        width: 39px;
+        height: 39px;
+        border: var(--line);
+        border-radius: 50%;
+        position: relative;
+        color: #202020;
+      }
+      .swatch.selected {
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .button-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 22px;
+      }
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+        line-height: 1.6;
+        margin-top: 10px;
+      }
+      .danger {
+        color: #9e2828;
+      }
+      .preview-box {
+        display: flex;
+        gap: 12px;
+        margin-top: 18px;
+        border: 1px solid #aaa;
+        padding: 12px;
+        border-radius: 4px;
+        align-items: center;
+      }
+      .preview-box img {
+        width: 95px;
+        height: 65px;
+        object-fit: cover;
+        border: 1px solid var(--ink);
+      }
+      .preview-box span {
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .modal-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 10px;
+      }
+      .modal-head h2 {
+        font: 700 28px "Segoe UI";
+        letter-spacing: -1px;
+      }
+      dialog {
+        width: min(550px, calc(100vw - 30px));
+        border: var(--line);
+        border-radius: 8px;
+        box-shadow: 8px 8px 0 var(--ink);
+        background: var(--surface);
+        color: var(--ink);
+        padding: 28px;
+        max-height: 90dvh;
+        overflow: auto;
+      }
+      dialog::backdrop {
+        background: #1118;
+        backdrop-filter: blur(3px);
+      }
+      .modal-actions {
+        display: flex;
+        gap: 13px;
+        justify-content: flex-end;
+        margin-top: 26px;
+      }
+      .error {
+        color: #b12626;
+        font-size: 14px;
+        margin-top: 13px;
+        line-height: 1.5;
+      }
+      .checkbox {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      .checkbox input {
+        accent-color: #7156c3;
+        width: 18px;
+        height: 18px;
+      }
+      #toast {
+        position: fixed;
+        bottom: 112px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        background: var(--ink);
+        color: var(--surface);
+        padding: 13px 20px;
+        border-radius: 5px;
+        box-shadow: 3px 3px 0 var(--accent);
+        max-width: 90vw;
+        display: none;
+        font-size: 14px;
+      }
+      #toast.show {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      #toast button {
+        background: none;
+        border: 0;
+        color: var(--accent);
+        text-decoration: underline;
+      }
+      .import-summary {
+        display: flex;
+        gap: 30px;
+        background: var(--paper);
+        padding: 20px;
+        margin-top: 20px;
+        border: var(--line);
+      }
+      .import-summary b {
+        font: 700 28px "Segoe UI";
+        display: block;
+      }
+      .import-summary span {
+        font-size: 13px;
+      }
+      .list-mode .masonry {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+      }
+      .dark {
+        --paper: #22232a;
+        --surface: #30313a;
+        --ink: #f3f1ea;
+        --muted: #bbb9b3;
+      }
+      .dark .button.primary,
+      .dark .dock button.active,
+      .dark .icon-btn:hover {
+        color: #202020;
+      }
+      .dark .chip.active {
+        color: #202020;
+      }
+      .dark .demo-banner {
+        background: #373041;
+        color: #dfd2f4;
+      }
+      .dark .brand-icon {
+        color: #202020;
+      }
+      .dark .brand-bang {
+        color: var(--accent);
+      }
+      .dark h1 span {
+        color: #202020;
+      }
+      .dark .button:hover {
+        box-shadow: 5px 5px 0 var(--ink);
+      }
+      @media (min-width: 1500px) {
+        .masonry {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 1050px) {
+        .masonry,
+        .list-mode .masonry {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .folder-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .hero-sticker {
+          display: none;
+        }
+        .tagline {
+          display: none;
+        }
+      }
+      @media (max-width: 760px) {
+        .topbar {
+          height: 76px;
+          padding: 0 22px;
+          gap: 14px;
+        }
+        .brand {
+          font-size: 33px;
+        }
+        .brand-icon {
+          width: 34px;
+          height: 34px;
+          font-size: 29px;
+        }
+        .local-badge {
+          display: none;
+        }
+        .import-top {
+          margin-left: auto;
+        }
+        .topbar .button {
+          font-size: 12px;
+          padding: 8px 10px;
+        }
+        main {
+          padding: 30px 22px 135px;
+        }
+        .hero {
+          align-items: flex-start;
+          gap: 18px;
+          flex-direction: column;
+          margin-bottom: 25px;
+        }
+        h1 {
+          font-size: 36px;
+          letter-spacing: -1.8px;
+        }
+        .hero p {
+          font-size: 14px;
+        }
+        .hero-actions {
+          width: 100%;
+          justify-content: space-between;
+        }
+        .hero-actions .button {
+          padding: 11px 16px;
+        }
+        .stats {
+          margin-top: 12px;
+        }
+        .toolbar {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .search {
+          max-width: none;
+          flex-basis: 100%;
+        }
+        .select {
+          font-size: 13px;
+          max-width: 50%;
+          height: 43px;
+        }
+        .toolbar .sort {
+          margin-left: auto;
+        }
+        .keycap {
+          display: none;
+        }
+        .masonry,
+        .list-mode .masonry {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+          grid-auto-rows: 8px;
+        }
+        .card.wide {
+          grid-column: span 2;
+        }
+        .graphic-art {
+          padding: 16px;
+        }
+        .graphic-art strong {
+          font-size: 32px;
+        }
+        .graphic-art b {
+          font-size: 85px;
+          right: 7px;
+          bottom: 15px;
+        }
+        .card-body {
+          padding: 12px 10px;
+        }
+        .card h3 {
+          font-size: 16px;
+        }
+        .card-footer {
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .folder-label {
+          max-width: 100%;
+          font-size: 10px;
+        }
+        .card-controls {
+          margin-left: auto;
+        }
+        .domain {
+          font-size: 10px;
+          letter-spacing: 0.3px;
+        }
+        .demo-banner {
+          font-size: 12px;
+          align-items: flex-start;
+        }
+        .demo-banner button {
+          font-size: 12px;
+          flex-shrink: 0;
+        }
+        .dock {
+          bottom: max(16px, env(safe-area-inset-bottom));
+          gap: 1px;
+          padding: 6px;
+          border-radius: 10px;
+          width: calc(100% - 36px);
+          max-width: 450px;
+          justify-content: space-between;
+        }
+        .dock button {
+          flex: 1;
+          flex-direction: column;
+          padding: 8px 5px;
+          gap: 5px;
+          font-size: 11px;
+        }
+        .dock .divider {
+          display: none;
+        }
+        .dock svg {
+          width: 21px;
+          height: 21px;
+        }
+        #toast {
+          bottom: 105px;
+        }
+        .folder-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px 15px;
+        }
+        .folder-card {
+          padding: 16px;
+          min-height: 150px;
+        }
+        .folder-card h3 {
+          font-size: 17px;
+        }
+        .settings-grid {
+          grid-template-columns: 1fr;
+        }
+        .panel {
+          padding: 21px;
+        }
+        .modal-head h2 {
+          font-size: 25px;
+        }
+        dialog {
+          padding: 23px;
+        }
+        .hero-actions .button.small {
+          font-size: 13px;
+        }
+        .section-label {
+          font-size: 11px;
+        }
+        .eyebrow {
+          font-size: 10px;
+        }
+        .chips {
+          gap: 6px;
+        }
+        .chip {
+          font-size: 12px;
+          padding: 7px 10px;
+        }
+      }
+      @media (max-width: 370px) {
+        .masonry,
+        .list-mode .masonry {
+          grid-template-columns: 1fr;
+        }
+        .card.wide {
+          grid-column: auto;
+        }
+        .folder-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *:before,
+        *:after {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+
+      /* The visible collection determines proportions, including links without a saved layout. */
+      .masonry {
+        --cover-short: clamp(145px, 12vw, 195px);
+        --cover-medium: clamp(195px, 16vw, 250px);
+        --cover-tall: clamp(295px, 25vw, 390px);
+      }
+      .masonry .card {
+        --cover-height: var(--cover-medium);
+      }
+      .masonry .card:nth-child(3n + 1) {
+        --cover-height: var(--cover-short);
+      }
+      .masonry .card:nth-child(3n + 2) {
+        --cover-height: var(--cover-tall);
+      }
+      .masonry .card .cover {
+        height: var(--cover-height);
+      }
+      .list-mode .masonry {
+        --cover-short: 120px;
+        --cover-medium: 165px;
+        --cover-tall: 230px;
+      }
+      @media (min-width: 371px) {
+        .masonry .card:nth-child(6n + 4):not(.graphic):not(.tall):not(.normal) {
+          grid-column: span 2;
+        }
+      }
+      @media (max-width: 760px) {
+        .masonry {
+          --cover-short: 140px;
+          --cover-medium: 190px;
+          --cover-tall: 260px;
+        }
+        .list-mode .masonry {
+          --cover-short: 110px;
+          --cover-medium: 150px;
+          --cover-tall: 205px;
+        }
+      }
+
+      .brand-icon {
+        transform: none;
+        border: 0;
+        box-shadow: none;
+        background: none;
+      }
+      .brand-icon img {
+        width: 100%;
+        height: 100%;
+      }
+      .install-steps {
+        padding-left: 1.5rem;
+        line-height: 1.7;
+      }
+      .install-steps li + li {
+        margin-top: 0.65rem;
+      }
+      .local-notice {
+        padding: 12px;
+        background: #ffe7a8;
+        color: #202020;
+      }
+      .topbar .import-top {
+        margin-left: auto;
+      }
+      @media (max-width: 600px) {
+        .topbar {
+          gap: 8px;
+          padding: 0 12px;
+        }
+        .brand {
+          font-size: 25px;
+        }
+        .brand-icon {
+          width: 27px;
+        }
+        .topbar .button {
+          padding: 6px;
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Ir para o conteúdo</a>
+    <header class="topbar">
+      <a href="#home" class="brand" aria-label="Save It!, início"
+        ><span class="brand-icon"
+          ><img
+            src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjQ2IiByeD0iOCIgZmlsbD0iI2M3YWFmYSIgc3Ryb2tlPSIjMjAxZjIyIiBzdHJva2Utd2lkdGg9IjIiLz48cGF0aCBkPSJNMTMgN2gyMnYzNGwtMTEtOC0xMSA4eiIgZmlsbD0iI2ZmZjJhMyIgc3Ryb2tlPSIjMjAxZjIyIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48L3N2Zz4K"
+            alt="" /></span
+        ><span>Save It<span class="brand-bang">!</span></span></a
+      ><span class="tagline">Biblioteca local</span
+      ><button class="button small import-top" id="import-top">
+        Importar favoritos</button
+      ><button class="button small" id="create-shortcut">Criar atalho</button
+      ><span class="local-badge" title="Dados salvos neste navegador"
+        ><span></span> Neste computador</span
+      >
+    </header>
+    <div id="local-notice" role="alert" class="local-notice" hidden></div>
+    <main id="main" tabindex="-1"></main>
+    <nav class="dock" aria-label="Navegação principal"></nav>
+    <dialog id="modal"><div id="modal-content"></div></dialog>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <input
+      type="file"
+      id="import-file"
+      accept=".json,.html,.htm,application/json,text/html"
+      hidden
+    />
+    <script>
+      (() => {
+        "use strict";
+        const DESKTOP_ICO =
+          "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";
+        const uid = () => crypto.randomUUID();
+        const escapeHTML = (value) =>
+          String(value ?? "").replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              })[c],
+          );
+        function normalizeURL(value) {
+          const raw = String(value).trim();
+          const url = new URL(
+            /^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`,
+          );
+          if (
+            !["http:", "https:"].includes(url.protocol) ||
+            url.username ||
+            url.password ||
+            !url.hostname.includes(".")
+          )
+            throw new Error("Use um link público HTTP ou HTTPS válido.");
+          return url.href;
+        }
+        function folderPath(folders, id) {
+          const path = [],
+            seen = new Set();
+          while (id && !seen.has(id)) {
+            seen.add(id);
+            const f = folders.find((f) => f.id === id);
+            if (!f) break;
+            path.unshift(f);
+            id = f.parentId;
+          }
+          return path;
+        }
+        function descendants(folders, id) {
+          const ids = new Set([id]);
+          let changed = true;
+          while (changed) {
+            changed = false;
+            for (const f of folders)
+              if (ids.has(f.parentId) && !ids.has(f.id)) {
+                ids.add(f.id);
+                changed = true;
+              }
+          }
+          return ids;
+        }
+        function validateBackup(input) {
+          if (
+            !input ||
+            !Array.isArray(input.bookmarks) ||
+            !Array.isArray(input.folders)
+          )
+            throw new Error(
+              "JSON incompatível. Importe um backup do Save It! ou um HTML de favoritos.",
+            );
+          if (input.bookmarks.length > 20000 || input.folders.length > 5000)
+            throw new Error(
+              "O limite por importação é de 20.000 links e 5.000 pastas.",
+            );
+          const folders = input.folders.map((f) => {
+            if (
+              typeof f.id !== "string" ||
+              !f.id ||
+              typeof f.name !== "string" ||
+              !f.name.trim()
+            )
+              throw new Error("Pasta inválida no backup.");
+            return {
+              id: f.id,
+              name: f.name.trim().slice(0, 100),
+              parentId: f.parentId || null,
+              color: /^#[a-f\d]{6}$/i.test(f.color) ? f.color : "#c9b9ff",
+            };
+          });
+          const ids = new Set(folders.map((f) => f.id));
+          if (ids.size !== folders.length)
+            throw new Error("O backup contém IDs de pasta duplicados.");
+          const parentById = new Map(folders.map((f) => [f.id, f.parentId]));
+          for (const f of folders) {
+            if (f.parentId && !ids.has(f.parentId))
+              throw new Error("Uma pasta superior está ausente no backup.");
+            const seen = new Set([f.id]);
+            let parent = f.parentId;
+            while (parent) {
+              if (seen.has(parent))
+                throw new Error("A hierarquia de pastas contém um ciclo.");
+              seen.add(parent);
+              parent = parentById.get(parent);
+            }
+          }
+          let invalid = 0;
+          const bookmarks = input.bookmarks.flatMap((b) => {
+            try {
+              const url = normalizeURL(b.url);
+              return [
+                {
+                  id: uid(),
+                  url,
+                  title: String(b.title || new URL(url).hostname).slice(0, 300),
+                  note: String(b.note || "").slice(0, 5000),
+                  folderId: ids.has(b.folderId) ? b.folderId : null,
+                  done: b.done === true,
+                  createdAt: Number(b.createdAt) || Date.now(),
+                  completedAt: b.done
+                    ? Number(b.completedAt) || Date.now()
+                    : null,
+                  image:
+                    typeof b.image === "string" && /^https:\/\//.test(b.image)
+                      ? b.image
+                      : "",
+                  type: ["site", "video", "image", "game"].includes(b.type)
+                    ? b.type
+                    : "site",
+                },
+              ];
+            } catch {
+              invalid++;
+              return [];
+            }
+          });
+          return { folders, bookmarks, invalid };
+        }
+        function mergeBackup(current, imported, skipDuplicates = true) {
+          const ids = new Map(imported.folders.map((f) => [f.id, uid()]));
+          const folders = [
+            ...current.folders,
+            ...imported.folders.map((f) => ({
+              ...f,
+              id: ids.get(f.id),
+              parentId: ids.get(f.parentId) || null,
+            })),
+          ];
+          const urls = new Set(current.bookmarks.map((b) => b.url));
+          let skipped = 0;
+          const bookmarks = [...current.bookmarks];
+          for (const b of imported.bookmarks) {
+            if (skipDuplicates && urls.has(b.url)) {
+              skipped++;
+              continue;
+            }
+            urls.add(b.url);
+            bookmarks.push({
+              ...b,
+              id: uid(),
+              folderId: ids.get(b.folderId) || null,
+            });
+          }
+          return { folders, bookmarks, skipped };
+        }
+        function exportHTML(state) {
+          const esc = escapeHTML;
+          function level(parentId, depth = 0) {
+            if (depth > 100)
+              throw new Error(
+                "Há mais de 100 níveis de pastas. Use a exportação JSON.",
+              );
+            let html = "<DL><p>\n";
+            for (const f of state.folders.filter(
+              (f) => f.parentId === parentId,
+            ))
+              html += `<DT><H3>${esc(f.name)}</H3>\n${level(f.id, depth + 1)}`;
+            for (const b of state.bookmarks.filter(
+              (b) => b.folderId === parentId,
+            ))
+              html += `<DT><A HREF="${esc(b.url)}" ADD_DATE="${Math.floor(b.createdAt / 1000)}">${esc(b.title)}</A>\n`;
+            return html + "</DL><p>\n";
+          }
+          return (
+            '<!DOCTYPE NETSCAPE-Bookmark-file-1>\n<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">\n<TITLE>Save It! — Favoritos</TITLE>\n<H1>Favoritos</H1>\n' +
+            level(null)
+          );
+        }
+
+        const e = escapeHTML;
+        function parseHTML(text) {
+          const doc = new DOMParser().parseFromString(text, "text/html");
+          const folders = [],
+            bookmarks = [];
+          function walk(list, parentId, depth = 0) {
+            if (depth > 100)
+              throw new Error("O arquivo tem mais de 100 níveis de pastas.");
+            let lastFolder = null;
+            for (const el of list.children) {
+              if (el.tagName === "DT") {
+                const title = [...el.children].find((x) => x.tagName === "H3");
+                const link = [...el.children].find((x) => x.tagName === "A");
+                if (title) {
+                  lastFolder = uid();
+                  folders.push({
+                    id: lastFolder,
+                    name: title.textContent.trim() || "Pasta importada",
+                    parentId,
+                  });
+                }
+                if (link) {
+                  bookmarks.push({
+                    url: link.getAttribute("href"),
+                    title: link.textContent,
+                    folderId: parentId,
+                    createdAt: Number(link.getAttribute("add_date")) * 1000,
+                  });
+                  lastFolder = null;
+                }
+                for (const child of el.children)
+                  if (child.tagName === "DL")
+                    walk(child, title ? lastFolder : parentId, depth + 1);
+              } else if (el.tagName === "DL") {
+                walk(el, lastFolder || parentId, depth + 1);
+                lastFolder = null;
+              } else if (el.querySelector("dt,dl"))
+                walk(el, parentId, depth + 1);
+            }
+          }
+          const root = doc.querySelector("dl");
+          if (!root)
+            throw new Error("HTML sem uma lista de favoritos reconhecida.");
+          walk(root, null);
+          return validateBackup({ folders, bookmarks });
+        }
+        function download(name, content, type) {
+          const url = URL.createObjectURL(new Blob([content], { type }));
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = name;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+        function detectType(url) {
+          const u = new URL(url);
+          if (/\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(url)) return "image";
+          if (/(^|\.)(youtube\.com|youtu\.be|vimeo\.com)$/.test(u.hostname))
+            return "video";
+          if (/store\.steampowered\.com|itch\.io|gog\.com/.test(u.hostname))
+            return "game";
+          return "site";
+        }
+        function initialImage(url) {
+          const u = new URL(url);
+          if (detectType(url) === "image") return url;
+          const video =
+            u.hostname === "youtu.be"
+              ? u.pathname.slice(1)
+              : /(^|\.)youtube\.com$/.test(u.hostname)
+                ? u.searchParams.get("v") ||
+                  u.pathname.match(/\/(?:shorts|embed)\/([^/]+)/)?.[1]
+                : null;
+          return video && /^[\w-]{11}$/.test(video)
+            ? `https://i.ytimg.com/vi/${video}/hqdefault.jpg`
+            : "";
+        }
+        async function metadata(url) {
+          const fallback = {
+            title: new URL(url).hostname.replace(/^www\./, ""),
+            image: initialImage(url),
+            type: detectType(url),
+          };
+          try {
+            const res = await fetch(
+              `https://api.microlink.io/?url=${encodeURIComponent(url)}`,
+              { signal: AbortSignal.timeout(10000) },
+            );
+            if (!res.ok) return fallback;
+            const json = await res.json();
+            const data = json.data;
+            if (json.status !== "success" || !data) return fallback;
+            return {
+              ...fallback,
+              title: data.title || fallback.title,
+              image: data.image?.url?.startsWith("https://")
+                ? data.image.url
+                : fallback.image,
+            };
+          } catch {
+            return fallback;
+          }
+        }
+
+        function seed() {
+          return { version: 1, folders: [], bookmarks: [], prefs: {} };
+        }
+        const icons = {
+          home: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',
+          folder:
+            '<path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+          check: '<path d="m5 12 4 4L19 6"/>',
+          done: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+          settings:
+            '<path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/><path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 2 1 3h4l2-2 3 1 2-3-1-3 2-2-2-4-3 1-2-3z"/>',
+          plus: '<path d="M12 4v16M4 12h16"/>',
+          search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+          more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+          close: '<path d="m6 6 12 12M6 18 18 6"/>',
+          link: '<path d="m10 7 3-3a5 5 0 0 1 7 7l-3 3M14 17l-3 3a5 5 0 0 1-7-7l3-3M8 16l8-8"/>',
+          video:
+            '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
+          image:
+            '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8" cy="8" r="1"/><path d="m3 17 6-6 4 4 3-3 5 5"/>',
+          game: '<path d="M7 7h10a4 4 0 0 1 4 4v6a2 2 0 0 1-3 2l-3-3H9l-3 3a2 2 0 0 1-3-2v-6a4 4 0 0 1 4-4zM6 11h4M8 9v4M16 11h.01M18 13h.01"/>',
+          undo: '<path d="m8 4-5 5 5 5M3 9h11a6 6 0 0 1 0 12"/>',
+        };
+        const icon = (n) =>
+          `<svg viewBox="0 0 24 24" aria-hidden="true">${icons[n] || icons.link}</svg>`;
+        const labels = {
+          site: "Site",
+          video: "Vídeo",
+          image: "Imagem",
+          game: "Jogo",
+        };
+        const KEY = "save-it:desktop:v1";
+        let state;
+        let loadError = "";
+        try {
+          const raw = localStorage.getItem(KEY);
+          state = raw ? JSON.parse(raw) : seed();
+          if (!Array.isArray(state.bookmarks) || !Array.isArray(state.folders))
+            throw Error();
+        } catch {
+          state = seed();
+          loadError =
+            "Não foi possível carregar os dados locais. Importe seu backup para restaurar.";
+        }
+        state.prefs = {
+          accent: "#c9b9ff",
+          theme: "light",
+          density: "comfortable",
+          remote: true,
+          ...state.prefs,
+        };
+        let view = "home",
+          folder = null,
+          query = "",
+          type = "all",
+          sort = "newest",
+          status = "pending",
+          toastTimer,
+          pendingImport = null,
+          previewToken = 0;
+        const main = document.querySelector("main"),
+          modal = document.querySelector("#modal"),
+          modalContent = document.querySelector("#modal-content");
+        function save() {
+          try {
+            localStorage.setItem(KEY, JSON.stringify(state));
+            return true;
+          } catch {
+            const notice = document.querySelector("#local-notice");
+            notice.hidden = false;
+            notice.textContent =
+              "Não foi possível gravar neste navegador. Exporte um backup JSON antes de fechar.";
+            return false;
+          }
+        }
+        function toast(message, undo) {
+          const box = document.querySelector("#toast");
+          box.replaceChildren(document.createTextNode(message));
+          if (undo) {
+            const b = document.createElement("button");
+            b.textContent = "Desfazer";
+            b.onclick = () => {
+              undo();
+              box.classList.remove("show");
+            };
+            box.append(b);
+          }
+          box.classList.add("show");
+          clearTimeout(toastTimer);
+          toastTimer = setTimeout(
+            () => box.classList.remove("show"),
+            undo ? 8000 : 5000,
+          );
+        }
+        function applyPrefs() {
+          document.documentElement.style.setProperty(
+            "--accent",
+            state.prefs.accent,
+          );
+          document.documentElement.classList.toggle(
+            "dark",
+            state.prefs.theme === "dark",
+          );
+          document.body.classList.toggle(
+            "list-mode",
+            state.prefs.density === "compact",
+          );
+          document.querySelector('meta[name="theme-color"]').content =
+            state.prefs.accent;
+        }
+        function options(selected = null, exclude = new Set()) {
+          return (
+            `<option value="">Sem pasta</option>` +
+            state.folders
+              .filter((f) => !exclude.has(f.id))
+              .map(
+                (f) =>
+                  `<option value="${e(f.id)}" ${selected === f.id ? "selected" : ""}>${e(
+                    folderPath(state.folders, f.id)
+                      .map((x) => x.name)
+                      .join(" / "),
+                  )}</option>`,
+              )
+              .join("")
+          );
+        }
+        function hero(eyebrow, title, description, actions) {
+          return `<section class="hero"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div><div class="hero-actions">${actions}</div></section>`;
+        }
+        function nav() {
+          document.querySelector(".dock").innerHTML = [
+            ["home", "home", "Início"],
+            ["folders", "folder", "Pastas"],
+            ["done", "done", "Concluídos"],
+            ["settings", "settings", "Configurações"],
+          ]
+            .map(
+              ([id, ic, label], i) =>
+                `${i === 3 ? '<span class="divider"></span>' : ""}<button data-nav="${id}" class="${view === id ? "active" : ""}" ${view === id ? 'aria-current="page"' : ""}>${icon(ic)}<span>${label}</span></button>`,
+            )
+            .join("");
+        }
+        function go(next) {
+          view = next;
+          folder = null;
+          query = "";
+          type = "all";
+          status = next === "done" ? "done" : "pending";
+          render();
+          window.scrollTo({ top: 0, behavior: "instant" });
+        }
+        function filtered() {
+          let list = state.bookmarks.filter(
+            (b) => status === "all" || b.done === (status === "done"),
+          );
+          if (folder === "none") list = list.filter((b) => !b.folderId);
+          else if (folder) {
+            const ids = descendants(state.folders, folder);
+            list = list.filter((b) => ids.has(b.folderId));
+          }
+          if (type !== "all") list = list.filter((b) => b.type === type);
+          const q = query.trim().toLocaleLowerCase("pt-BR");
+          if (q)
+            list = list.filter((b) =>
+              [
+                b.title,
+                b.url,
+                b.note,
+                ...folderPath(state.folders, b.folderId).map((f) => f.name),
+              ]
+                .join(" ")
+                .toLocaleLowerCase("pt-BR")
+                .includes(q),
+            );
+          return list.sort((a, b) =>
+            sort === "title"
+              ? a.title.localeCompare(b.title, "pt-BR")
+              : sort === "oldest"
+                ? a.createdAt - b.createdAt
+                : view === "done"
+                  ? (b.completedAt || 0) - (a.completedAt || 0)
+                  : b.createdAt - a.createdAt,
+          );
+        }
+        function tools() {
+          return `<div class="toolbar"><label class="search">${icon("search")}<input id="search" type="search" placeholder="Buscar nos seus links..." value="${e(query)}" aria-label="Buscar marcadores"><span class="keycap">/</span></label><select id="folder-filter" class="select" aria-label="Filtrar por pasta"><option value="all">Todas as pastas</option><option value="none" ${folder === "none" ? "selected" : ""}>Sem pasta</option>${options(folder).replace('<option value="">Sem pasta</option>', "")}</select><select id="sort" class="select sort" aria-label="Ordenar marcadores"><option value="newest" ${sort === "newest" ? "selected" : ""}>Mais recentes</option><option value="oldest" ${sort === "oldest" ? "selected" : ""}>Mais antigos</option><option value="title" ${sort === "title" ? "selected" : ""}>Título A–Z</option></select></div><div class="chips">${[
+            ["all", "Todos", "home"],
+            ["site", "Sites", "link"],
+            ["video", "Vídeos", "video"],
+            ["image", "Imagens", "image"],
+            ["game", "Jogos", "game"],
+          ]
+            .map(
+              ([v, l, ic]) =>
+                `<button class="chip ${type === v ? "active" : ""}" data-type="${v}" aria-pressed="${type === v}">${icon(ic)}${l}</button>`,
+            )
+            .join("")}</div>`;
+        }
+        function card(b) {
+          const f = state.folders.find((f) => f.id === b.folderId);
+          const domain = new URL(b.url).hostname.replace(/^www\./, "");
+          const image = state.prefs.remote
+            ? b.image ||
+              initialImage(b.url) ||
+              `https://image.thum.io/get/width/640/crop/600/noanimate/${b.url}`
+            : "";
+          let art =
+            b.style === "graphic"
+              ? '<div class="graphic-art"><small>GOOD IDEAS LIVE HERE</small><strong>Stay<br>curious.</strong><b>✳</b></div>'
+              : b.style === "code"
+                ? '<div class="code-art"><b>&lt;/&gt;</b><span>nunca pare de aprender.</span></div>'
+                : image
+                  ? `<img src="${e(image)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
+                  : `<div class="cover-fallback">${e(domain)}</div>`;
+          return `<article class="card ${e(b.style || "")} ${b.done ? "is-done" : ""}" data-id="${e(b.id)}"><div class="card-inner"><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer" class="cover" aria-label="Abrir ${e(b.title)}">${art}<span class="type-badge">${icon(b.type === "site" ? "link" : b.type)}${labels[b.type] || "Site"}</span></a><div class="card-body"><div class="domain">${e(domain)}</div><h3><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer">${e(b.title)}</a></h3><div class="card-footer"><span class="folder-label" style="background:${f?.color || "#e8e7e1"}" title="${e(
+            folderPath(state.folders, b.folderId)
+              .map((f) => f.name)
+              .join(" / ") || "Sem pasta",
+          )}">${icon("folder")}${e(f?.name || "Sem pasta")}</span><div class="card-controls"><button class="icon-btn" data-complete="${e(b.id)}" title="${b.done ? "Marcar como pendente" : "Marcar como concluído"}" aria-label="${b.done ? "Restaurar" : "Concluir"}: ${e(b.title)}">${icon(b.done ? "undo" : "check")}</button><button class="icon-btn" data-edit="${e(b.id)}" aria-label="Editar ${e(b.title)}" title="Editar marcador">${icon("more")}</button></div></div></div></div></article>`;
+        }
+        function renderCards() {
+          const list = filtered();
+          const wrap = document.querySelector("#results");
+          if (!wrap) return;
+          wrap.innerHTML =
+            `<div class="section-label">${view === "done" ? "JÁ VI, JÁ CURTI" : "SUAS DESCOBERTAS"} <span>${list.length} ${list.length === 1 ? "marcador" : "marcadores"}</span></div>` +
+            (list.length
+              ? `<div class="masonry">${list.map(card).join("")}</div>`
+              : `<div class="empty"><div class="empty-icon">${query ? "⌕" : "✳"}</div><h2>${query ? "Nenhum link por aqui" : "Espaço para novas descobertas"}</h2><p>${query ? "Tente outro termo ou ajuste os filtros." : view === "done" ? "Seus links concluídos aparecerão aqui, nas mesmas pastas." : "Salve um link e comece a construir seu canto da internet."}</p>${view === "done" ? "" : `<button class="button primary" data-add>${icon("plus")}Salvar um link</button>`}</div>`);
+          wrap.querySelectorAll(".cover img").forEach((img) => {
+            img.onerror = () => {
+              const fallback = document.createElement("div");
+              fallback.className = "cover-fallback";
+              fallback.textContent = new URL(img.closest("a").href).hostname;
+              img.replaceWith(fallback);
+            };
+          });
+          layoutCards();
+        }
+        let observer;
+        function layoutCards() {
+          observer?.disconnect();
+          const grid = document.querySelector(".masonry");
+          if (!grid) return;
+          const gap = parseFloat(getComputedStyle(grid).rowGap);
+          const resize = (el) => {
+            el.parentElement.style.gridRowEnd = `span ${Math.ceil((el.getBoundingClientRect().height + gap) / (8 + gap))}`;
+          };
+          observer = new ResizeObserver((entries) =>
+            entries.forEach((x) => resize(x.target)),
+          );
+          grid.querySelectorAll(".card-inner").forEach((el) => {
+            resize(el);
+            observer.observe(el);
+          });
+        }
+        function render() {
+          applyPrefs();
+          nav();
+          if (view === "settings") {
+            renderSettings();
+            return;
+          }
+          if (view === "folders") {
+            renderFolders();
+            return;
+          }
+          const done = view === "done";
+          main.innerHTML =
+            hero(
+              done ? "CONCLUÍDOS" : "BIBLIOTECA LOCAL",
+              done
+                ? "Marcadores <span>concluídos.</span>"
+                : "Meu <span>mural.</span>",
+              done
+                ? "Suas descobertas já exploradas, sempre à mão."
+                : "Seus links pendentes de todas as pastas.",
+              `<span class="hero-sticker" aria-hidden="true">✳</span><button class="button primary" data-add>${icon("plus")}Salvar link</button>`,
+            ) +
+            `<div class="stats" style="margin-top:-16px;margin-bottom:26px"><span><b>${state.bookmarks.filter((b) => b.done === done).length}</b> ${done ? "concluídos" : "links salvos"}</span><i></i><span><b>${state.folders.length}</b> pastas</span></div>` +
+            tools() +
+            (!done && state.bookmarks.some((b) => b.demo)
+              ? `<div class="demo-banner"><span>✳ Uma dose de inspiração para começar. Estes links são exemplos.</span><button class="text-btn" id="clear-demo">Começar do zero</button></div>`
+              : "") +
+            '<section id="results" aria-label="Marcadores"></section>';
+          renderCards();
+        }
+        function renderFolders() {
+          const current = state.folders.find((f) => f.id === folder);
+          const children = state.folders.filter(
+            (f) => f.parentId === (folder || null),
+          );
+          main.innerHTML =
+            hero(
+              "CADA IDEIA NO SEU LUGAR",
+              current ? e(current.name) : "Um universo de <span>pastas.</span>",
+              "Organize suas descobertas. Do seu jeito.",
+              `<button class="button small" data-new-folder>${icon("plus")}${folder ? "Nova subpasta" : "Nova pasta"}</button><button class="button primary" data-add>${icon("plus")}Salvar link</button>`,
+            ) +
+            (folder
+              ? `<div class="breadcrumbs"><button data-folder="">Pastas</button>${folderPath(
+                  state.folders,
+                  folder,
+                )
+                  .map(
+                    (f) =>
+                      `<span>/</span><button data-folder="${e(f.id)}">${e(f.name)}</button>`,
+                  )
+                  .join("")}</div>`
+              : "") +
+            `<section class="folder-grid" aria-label="Pastas">${children
+              .map((f) => {
+                const ids = descendants(state.folders, f.id);
+                return `<article class="folder-card" style="--folder-color:${f.color}"><button class="folder-open" data-folder="${e(f.id)}"><span class="folder-symbol">${icon("folder")}</span><h3>${e(f.name)}</h3><p>${state.bookmarks.filter((b) => ids.has(b.folderId)).length} links · ${state.folders.filter((x) => x.parentId === f.id).length} subpastas</p></button><button class="icon-btn edit-folder" data-edit-folder="${e(f.id)}" aria-label="Editar pasta ${e(f.name)}">${icon("more")}</button></article>`;
+              })
+              .join("")}</section>` +
+            (!children.length && !folder
+              ? `<div class="empty"><h2>Sua primeira pasta está esperando</h2><p>Crie um lugar para suas próximas descobertas.</p><button class="button primary" data-new-folder>Nova pasta</button></div>`
+              : "") +
+            `<div class="chips">${[
+              ["pending", "Pendentes"],
+              ["done", "Concluídos"],
+              ["all", "Todos"],
+            ]
+              .map(
+                ([v, l]) =>
+                  `<button class="chip ${status === v ? "active" : ""}" data-status="${v}">${l}</button>`,
+              )
+              .join("")}</div>` +
+            tools() +
+            '<section id="results" aria-label="Marcadores da pasta"></section>';
+          renderCards();
+        }
+        function renderSettings() {
+          main.innerHTML =
+            hero(
+              "DEIXE COM A SUA CARA",
+              "Seu espaço. <span>Suas regras.</span>",
+              "Pequenos ajustes para uma coleção que é sua.",
+              "",
+            ) +
+            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
+        }
+        function openModal(title, body) {
+          modalContent.innerHTML = `<div class="modal-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Fechar">${icon("close")}</button></div>${body}`;
+          modal.showModal();
+        }
+        function closeModal() {
+          previewToken++;
+          modal.close();
+        }
+        async function linkModal(id) {
+          const b = state.bookmarks.find((b) => b.id === id);
+          let fetched = null;
+          const token = ++previewToken;
+          openModal(
+            b ? "Editar marcador" : "Uma nova descoberta",
+            `<p class="hint">Cole o link. A imagem fica por nossa conta.</p><form id="link-form"><label class="field">Link<input name="url" type="text" inputmode="url" placeholder="https://..." value="${e(b?.url || "")}" required maxlength="4000"></label><div id="link-preview"></div><label class="field">Título<input name="title" placeholder="Obtido automaticamente do link" value="${e(b?.title || "")}" maxlength="300"></label><label class="field">Pasta<select name="folder">${options(b?.folderId || folder)}</select></label><button type="button" class="text-btn" id="inline-folder" style="margin-top:9px">+ Criar pasta aqui</button><label class="field">Uma nota, se quiser<textarea name="note" placeholder="Por que vale guardar?" maxlength="5000">${e(b?.note || "")}</textarea></label><p class="hint">${state.prefs.remote ? "Prévias consultam serviços externos a partir desta URL." : "Consultas externas desativadas nas configurações."}</p><p class="error" id="form-error" role="alert"></p><div class="modal-actions">${b ? '<button type="button" class="text-btn danger" id="delete-link">Excluir</button>' : ""}<button type="button" class="button" data-close>Cancelar</button><button class="button primary" type="submit">${b ? "Salvar alterações" : "Salvar marcador"}</button></div></form>`,
+          );
+          const form = document.querySelector("#link-form");
+          const urlInput = form.elements.url;
+          urlInput.onblur = async () => {
+            if (!state.prefs.remote) return;
+            let url;
+            try {
+              url = normalizeURL(urlInput.value);
+            } catch {
+              return;
+            }
+            const requestedValue = urlInput.value;
+            const box = document.querySelector("#link-preview");
+            box.textContent = "Buscando prévia...";
+            const data = await metadata(url);
+            if (
+              token !== previewToken ||
+              !modal.open ||
+              urlInput.value !== requestedValue
+            )
+              return;
+            fetched = { ...data, url };
+            if (!form.elements.title.value)
+              form.elements.title.value = data.title;
+            box.innerHTML = `<div class="preview-box">${data.image ? `<img src="${e(data.image)}" alt="Prévia do link" referrerpolicy="no-referrer">` : icon("link")}<span>${e(data.title)}<br><small>${e(new URL(url).hostname)}</small></span></div>`;
+          };
+          document.querySelector("#inline-folder").onclick = () => {
+            const field = document.createElement("div");
+            field.className = "field";
+            field.innerHTML =
+              '<label>Nome da nova pasta<input id="inline-folder-name" maxlength="100" placeholder="Nome da pasta"></label><button type="button" class="button small">Criar pasta</button>';
+            document.querySelector("#inline-folder").replaceWith(field);
+            field.querySelector("button").onclick = () => {
+              const name = field.querySelector("input").value.trim();
+              if (!name) return;
+              const f = {
+                id: uid(),
+                name,
+                parentId: form.elements.folder.value || null,
+                color: state.prefs.accent,
+              };
+              state.folders.push(f);
+              save();
+              form.elements.folder.innerHTML = options(f.id);
+              field.remove();
+            };
+          };
+          if (b)
+            document.querySelector("#delete-link").onclick = () => {
+              closeModal();
+              confirmModal(
+                "Excluir marcador?",
+                `“${e(b.title)}” será removido da coleção.`,
+                () => {
+                  state.bookmarks = state.bookmarks.filter(
+                    (x) => x.id !== b.id,
+                  );
+                  save();
+                  render();
+                  toast("Marcador excluído.", () => {
+                    state.bookmarks.push(b);
+                    save();
+                    render();
+                  });
+                },
+              );
+            };
+          form.onsubmit = (event) => {
+            event.preventDefault();
+            try {
+              const url = normalizeURL(urlInput.value);
+              if (state.bookmarks.some((x) => x.id !== b?.id && x.url === url))
+                throw Error(
+                  "Este link já está salvo. Busque pelo domínio para encontrá-lo.",
+                );
+              const data = fetched?.url === url ? fetched : null;
+              const same = b?.url === url;
+              const entry = {
+                ...b,
+                id: b?.id || uid(),
+                url,
+                title:
+                  form.elements.title.value.trim() ||
+                  data?.title ||
+                  new URL(url).hostname,
+                note: form.elements.note.value.trim(),
+                folderId: form.elements.folder.value || null,
+                type: data?.type || detectType(url),
+                image: data?.image || (same ? b.image : initialImage(url)),
+                createdAt: b?.createdAt || Date.now(),
+                done: b?.done || false,
+                completedAt: b?.completedAt || null,
+              };
+              if (b)
+                state.bookmarks = state.bookmarks.map((x) =>
+                  x.id === b.id ? entry : x,
+                );
+              else state.bookmarks.unshift(entry);
+              save();
+              closeModal();
+              render();
+              toast(b ? "Marcador atualizado." : "Mais uma descoberta salva!");
+              if (!data && state.prefs.remote) refreshEntries([entry]);
+            } catch (error) {
+              document.querySelector("#form-error").textContent = error.message;
+            }
+          };
+        }
+        function confirmModal(title, message, action) {
+          openModal(
+            title,
+            `<p class="hint">${message}</p><div class="modal-actions"><button class="button" data-close>Cancelar</button><button class="button primary" id="confirm-action">Confirmar</button></div>`,
+          );
+          document.querySelector("#confirm-action").onclick = () => {
+            closeModal();
+            action();
+          };
+        }
+        function folderModal(id) {
+          const f = state.folders.find((f) => f.id === id);
+          const excluded = f ? descendants(state.folders, f.id) : new Set();
+          openModal(
+            f ? "Editar pasta" : "Um lugar para suas ideias",
+            `<form id="folder-form"><label class="field">Nome da pasta<input name="name" required maxlength="100" placeholder="Ex.: Ideias para o próximo projeto" value="${e(f?.name || "")}"></label><label class="field">Dentro de<select name="parent">${options(f ? f.parentId : folder, excluded).replace("Sem pasta", "Nível principal")}</select></label><label class="field">Cor<input type="color" name="color" value="${f?.color || state.prefs.accent}"></label><div class="modal-actions">${f ? '<button type="button" class="text-btn danger" id="delete-folder">Excluir pasta</button>' : ""}<button class="button" type="button" data-close>Cancelar</button><button class="button primary" type="submit">${f ? "Salvar alterações" : "Criar pasta"}</button></div></form>`,
+          );
+          const form = document.querySelector("#folder-form");
+          form.onsubmit = (ev) => {
+            ev.preventDefault();
+            const name = form.elements.name.value.trim();
+            if (!name) {
+              form.elements.name.setCustomValidity("Dê um nome à pasta.");
+              form.elements.name.reportValidity();
+              form.elements.name.oninput = () =>
+                form.elements.name.setCustomValidity("");
+              return;
+            }
+            const item = {
+              id: f?.id || uid(),
+              name,
+              parentId: form.elements.parent.value || null,
+              color: form.elements.color.value,
+            };
+            if (f)
+              state.folders = state.folders.map((x) =>
+                x.id === f.id ? item : x,
+              );
+            else state.folders.push(item);
+            save();
+            closeModal();
+            render();
+            toast(f ? "Pasta atualizada." : "Pasta criada.");
+          };
+          if (f)
+            document.querySelector("#delete-folder").onclick = () => {
+              closeModal();
+              confirmModal(
+                "Excluir pasta e subpastas?",
+                `As ${excluded.size} pastas serão removidas. Os marcadores serão preservados em “Sem pasta”.`,
+                () => {
+                  state.folders = state.folders.filter(
+                    (x) => !excluded.has(x.id),
+                  );
+                  state.bookmarks.forEach((b) => {
+                    if (excluded.has(b.folderId)) b.folderId = null;
+                  });
+                  if (excluded.has(folder)) folder = null;
+                  save();
+                  render();
+                  toast("Pastas excluídas. Os links foram preservados.");
+                },
+              );
+            };
+        }
+        async function refreshEntries(entries) {
+          let count = 0;
+          const queue = [...entries];
+          async function worker() {
+            while (queue.length && state.prefs.remote) {
+              const b = queue.shift();
+              const url = b.url;
+              const result = await metadata(url);
+              const existing = state.bookmarks.find(
+                (x) => x.id === b.id && x.url === url,
+              );
+              if (existing) {
+                existing.image = result.image || existing.image;
+                existing.type = result.type;
+                if (existing.title === new URL(url).hostname || !existing.title)
+                  existing.title = result.title;
+              }
+              count++;
+              save();
+              if (!modal.open && view !== "settings") renderCards();
+            }
+          }
+          await Promise.all([worker(), worker()]);
+          if (entries.length > 1)
+            toast(
+              `${count} prévias consultadas. Imagens indisponíveis usam uma captura ou o domínio.`,
+            );
+        }
+        async function importFile(file) {
+          try {
+            if (file.size > 20 * 1024 * 1024)
+              throw Error("O arquivo deve ter até 20 MB.");
+            const text = await file.text();
+            pendingImport =
+              /\.json$/i.test(file.name) || text.trim().startsWith("{")
+                ? validateBackup(JSON.parse(text))
+                : parseHTML(text);
+            const duplicates = pendingImport.bookmarks.filter((b) =>
+              state.bookmarks.some((x) => x.url === b.url),
+            ).length;
+            openModal(
+              "Suas descobertas estão chegando",
+              `<p class="hint">Revise a importação de ${e(file.name)}. Seus marcadores atuais serão preservados.</p><div class="import-summary"><div><b>${pendingImport.bookmarks.length}</b><span>links válidos</span></div><div><b>${pendingImport.folders.length}</b><span>pastas</span></div></div><p class="hint">${duplicates} links já estão na coleção. ${pendingImport.invalid} links inválidos serão ignorados.</p><label class="checkbox"><input type="checkbox" id="skip-duplicates" checked>Ignorar links duplicados</label><div class="modal-actions"><button class="button" data-close>Cancelar</button><button class="button primary" id="confirm-import">Importar favoritos</button></div>`,
+            );
+            document.querySelector("#confirm-import").onclick = () => {
+              const previousIds = new Set(state.bookmarks.map((b) => b.id));
+              const merged = mergeBackup(
+                state,
+                pendingImport,
+                document.querySelector("#skip-duplicates").checked,
+              );
+              state.folders = merged.folders;
+              state.bookmarks = merged.bookmarks;
+              save();
+              closeModal();
+              render();
+              const added = state.bookmarks.filter(
+                (b) => !previousIds.has(b.id),
+              );
+              toast(
+                `${added.length} links importados. ${merged.skipped} duplicados ignorados.`,
+              );
+              if (state.prefs.remote)
+                refreshEntries(added.filter((b) => !b.image));
+              pendingImport = null;
+            };
+          } catch (error) {
+            toast(
+              error instanceof SyntaxError
+                ? "JSON inválido. Verifique o arquivo e tente novamente."
+                : error.message,
+            );
+          }
+        }
+        document.addEventListener("click", (ev) => {
+          const target = ev.target.closest("button");
+          if (!target) return;
+          if (target.dataset.nav) go(target.dataset.nav);
+          else if (target.hasAttribute("data-close")) closeModal();
+          else if (target.hasAttribute("data-add")) linkModal();
+          else if (target.dataset.edit) linkModal(target.dataset.edit);
+          else if (target.dataset.complete) {
+            const b = state.bookmarks.find(
+              (b) => b.id === target.dataset.complete,
+            );
+            const old = { done: b.done, completedAt: b.completedAt };
+            b.done = !b.done;
+            b.completedAt = b.done ? Date.now() : null;
+            save();
+            render();
+            toast(
+              b.done
+                ? "Marcador concluído. Boa descoberta!"
+                : "Marcador voltou aos pendentes.",
+              () => {
+                Object.assign(b, old);
+                save();
+                render();
+              },
+            );
+          } else if (target.hasAttribute("data-new-folder")) folderModal();
+          else if (target.dataset.editFolder)
+            folderModal(target.dataset.editFolder);
+          else if (target.hasAttribute("data-folder")) {
+            folder = target.dataset.folder || null;
+            render();
+          } else if (target.dataset.type) {
+            type = target.dataset.type;
+            document.querySelectorAll("[data-type]").forEach((el) => {
+              el.classList.toggle("active", el.dataset.type === type);
+              el.setAttribute("aria-pressed", el.dataset.type === type);
+            });
+            renderCards();
+          } else if (target.dataset.status) {
+            status = target.dataset.status;
+            render();
+          } else if (
+            target.hasAttribute("data-import") ||
+            target.id === "import-top"
+          )
+            document.querySelector("#import-file").click();
+          else if (target.dataset.export) {
+            try {
+              const json = target.dataset.export === "json";
+              download(
+                `save-it-backup-${new Date().toISOString().slice(0, 10)}.${json ? "json" : "html"}`,
+                json
+                  ? JSON.stringify({ ...state, version: 1 }, null, 2)
+                  : exportHTML(state),
+                json ? "application/json" : "text/html",
+              );
+              toast("Backup exportado.");
+            } catch (error) {
+              toast(error.message);
+            }
+          } else if (target.dataset.accent) {
+            state.prefs.accent = target.dataset.accent;
+            save();
+            render();
+          } else if (target.id === "clear-demo")
+            confirmModal(
+              "Começar sua própria coleção?",
+              "Os links de exemplo serão removidos. Seus links pessoais serão preservados.",
+              () => {
+                state.bookmarks = state.bookmarks.filter((b) => !b.demo);
+                const used = new Set();
+                state.bookmarks.forEach((b) =>
+                  folderPath(state.folders, b.folderId).forEach((f) =>
+                    used.add(f.id),
+                  ),
+                );
+                state.folders = state.folders.filter(
+                  (f) =>
+                    !["design", "web", "places", "learn", "games"].includes(
+                      f.id,
+                    ) || used.has(f.id),
+                );
+                save();
+                render();
+                toast("Tudo pronto para suas descobertas.");
+              },
+            );
+          else if (target.id === "refresh-previews") {
+            target.disabled = true;
+            target.textContent = "Consultando prévias...";
+            refreshEntries(state.bookmarks).finally(() => {
+              if (target.isConnected) {
+                target.disabled = false;
+                target.textContent = "Atualizar prévias";
+              }
+            });
+          }
+        });
+        document.addEventListener("input", (ev) => {
+          if (ev.target.id === "search") {
+            query = ev.target.value;
+            renderCards();
+          }
+        });
+        document.addEventListener("change", (ev) => {
+          const el = ev.target;
+          if (el.id === "folder-filter") {
+            folder = el.value === "all" ? null : el.value;
+            if (view === "folders") render();
+            else renderCards();
+          } else if (el.id === "sort") {
+            sort = el.value;
+            renderCards();
+          } else if (["theme", "density", "remote"].includes(el.id)) {
+            state.prefs[el.id] = el.id === "remote" ? el.checked : el.value;
+            save();
+            render();
+          } else if (el.id === "import-file" && el.files[0]) {
+            importFile(el.files[0]);
+            el.value = "";
+          }
+        });
+        document.addEventListener("keydown", (ev) => {
+          if (
+            ev.key === "/" &&
+            !["INPUT", "TEXTAREA", "SELECT"].includes(
+              document.activeElement.tagName,
+            ) &&
+            !modal.open
+          ) {
+            ev.preventDefault();
+            document.querySelector("#search")?.focus();
+          }
+        });
+        modal.addEventListener("click", (ev) => {
+          if (ev.target === modal) {
+            const r = modal.getBoundingClientRect();
+            if (
+              ev.clientX < r.left ||
+              ev.clientX > r.right ||
+              ev.clientY < r.top ||
+              ev.clientY > r.bottom
+            )
+              closeModal();
+          }
+        });
+        modal.addEventListener("cancel", () => previewToken++);
+        window.addEventListener("resize", layoutCards);
+        window.addEventListener("storage", (ev) => {
+          if (ev.key === KEY && ev.newValue) {
+            try {
+              const next = JSON.parse(ev.newValue);
+              if (
+                Array.isArray(next.bookmarks) &&
+                Array.isArray(next.folders)
+              ) {
+                state = next;
+                render();
+              }
+            } catch {}
+          }
+        });
+        document.querySelector(".brand").onclick = (ev) => {
+          ev.preventDefault();
+          go("home");
+        };
+        render();
+        if (loadError) toast(loadError);
+
+        // ZIP "store" is sufficient for the two small Windows shortcut files.
+        function shortcutArchive(files) {
+          const encoder = new TextEncoder();
+          const entries = [],
+            directory = [];
+          let offset = 0,
+            directorySize = 0;
+          function header(length, signature) {
+            const view = new DataView(new ArrayBuffer(length));
+            view.setUint32(0, signature, true);
+            return view;
+          }
+          function crc32(bytes) {
+            let crc = -1;
+            for (const byte of bytes) {
+              crc ^= byte;
+              for (let i = 0; i < 8; i++)
+                crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+            }
+            return ~crc >>> 0;
+          }
+          for (const [name, data] of files) {
+            const filename = encoder.encode(name);
+            const sum = crc32(data);
+            const local = header(30, 0x04034b50);
+            local.setUint16(4, 20, true);
+            local.setUint16(12, 33, true);
+            local.setUint32(14, sum, true);
+            local.setUint32(18, data.length, true);
+            local.setUint32(22, data.length, true);
+            local.setUint16(26, filename.length, true);
+            entries.push(local.buffer, filename, data);
+            const central = header(46, 0x02014b50);
+            central.setUint16(4, 20, true);
+            central.setUint16(6, 20, true);
+            central.setUint16(14, 33, true);
+            central.setUint32(16, sum, true);
+            central.setUint32(20, data.length, true);
+            central.setUint32(24, data.length, true);
+            central.setUint16(28, filename.length, true);
+            central.setUint32(42, offset, true);
+            directory.push(central.buffer, filename);
+            offset += 30 + filename.length + data.length;
+            directorySize += 46 + filename.length;
+          }
+          const end = header(22, 0x06054b50);
+          end.setUint16(8, files.length, true);
+          end.setUint16(10, files.length, true);
+          end.setUint32(12, directorySize, true);
+          end.setUint32(16, offset, true);
+          return new Blob([...entries, ...directory, end.buffer], {
+            type: "application/zip",
+          });
+        }
+
+        function makeWindowsShortcut(address) {
+          const file = new URL(address);
+          if (file.protocol !== "file:")
+            throw Error("Abra o arquivo HTML salvo no computador.");
+          file.search = "";
+          file.hash = "";
+          const icon = new URL("Save-It.ico", file);
+          const path = decodeURIComponent(icon.pathname);
+          const windowsPath = (
+            icon.hostname
+              ? "//" + icon.hostname + path
+              : path.replace(/^\/(?=[a-z]:)/i, "")
+          ).replaceAll("/", "\\");
+          if (/[\r\n]/.test(windowsPath))
+            throw Error("Escolha uma pasta sem quebras de linha no nome.");
+          const shortcut =
+            "\uFEFF[InternetShortcut]\r\nURL=" +
+            file.href +
+            "\r\nIconFile=" +
+            windowsPath +
+            "\r\nIconIndex=0\r\n";
+          const bytes = new Uint8Array(shortcut.length * 2);
+          const view = new DataView(bytes.buffer);
+          for (let i = 0; i < shortcut.length; i++)
+            view.setUint16(i * 2, shortcut.charCodeAt(i), true);
+          const iconBytes = Uint8Array.from(atob(DESKTOP_ICO), (char) =>
+            char.charCodeAt(0),
+          );
+          return shortcutArchive([
+            ["Save It!.url", bytes],
+            ["Save-It.ico", iconBytes],
+          ]);
+        }
+
+        document
+          .getElementById("create-shortcut")
+          .addEventListener("click", () => {
+            openModal(
+              "Atalho para Windows",
+              '<ol class="install-steps"><li>Guarde <strong>Save-It.html</strong> em uma pasta permanente e abra-o de lá.</li><li>Baixe o atalho e extraia o ZIP na mesma pasta do HTML. Deixe <strong>Save-It.ico</strong> nessa pasta.</li><li>Mova <strong>Save It!.url</strong> para a Área de Trabalho. Um duplo clique nele abre sua coleção local.</li></ol><div class="modal-actions"><button class="button primary" id="shortcut-zip">Baixar atalho com ícone</button></div>',
+            );
+            document.getElementById("shortcut-zip").onclick = () => {
+              try {
+                download(
+                  "Save-It-atalho.zip",
+                  makeWindowsShortcut(location.href),
+                  "application/zip",
+                );
+              } catch (error) {
+                closeModal();
+                toast(error.message);
+              }
+            };
+          });
+      })();
+    </script>
+  </body>
+</html>
