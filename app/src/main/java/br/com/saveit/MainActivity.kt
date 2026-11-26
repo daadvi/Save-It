@@ -60,11 +60,34 @@ class MainActivity : Activity() {
         dock = LinearLayout(this).apply { setPadding(dp(4), dp(4), dp(4), dp(4)); setBackgroundColor(ink) }
         frame.addView(dock)
         setContentView(frame)
+        if (state == null) receiveShare(intent)
         show()
-        if (state == null && intent.action == Intent.ACTION_SEND) {
-            val shared = android.util.Patterns.WEB_URL.matcher(intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty())
-            if (shared.find()) linkEditor(shared = shared.group())
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        if (!::column.isInitialized) return
+        setIntent(intent)
+        receiveShare(intent)
+        show()
+    }
+
+    private fun receiveShare(intent: Intent) {
+        if (intent.action != Intent.ACTION_SEND) return
+        val url = sharedWebUrl(intent)
+        if (url == null) {
+            message("Este compartilhamento veio sem um link. No aplicativo de origem, compartilhe o link da publicação.")
+            return
         }
+        if (library.links.any { it.url == url }) {
+            message("Este link já está na sua coleção.")
+            return
+        }
+        val bookmark = Link(freshId(), url, URI(url).host, null)
+        save(library.copy(links = library.links + bookmark))
+        tab = 0
+        query = ""
+        message("Link salvo no mural.")
     }
 
     override fun onSaveInstanceState(out: Bundle) {
@@ -177,12 +200,12 @@ class MainActivity : Activity() {
             }
         }
     }
-    private fun linkEditor(item: Link? = null, shared: String = "") {
+    private fun linkEditor(item: Link? = null) {
         val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), 0) }
         fun field(hintText: String, value: String) = EditText(this).apply {
             hint = hintText; setSingleLine(); setText(value); body.addView(this)
         }
-        val url = field("URL do link", item?.url ?: shared)
+        val url = field("URL do link", item?.url.orEmpty())
         val title = field("Título (opcional)", item?.title.orEmpty())
         val note = field("Nota (opcional)", item?.note.orEmpty())
         val folder = Spinner(this)

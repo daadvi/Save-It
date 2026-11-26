@@ -8,7 +8,8 @@ Baixe o APK na seção [Releases](https://github.com/daadvi/Save-It/releases) pe
 
 ## Usar a coleção
 
-- Em **Mural**, toque em **+ Link** ou use **Compartilhar → Save It!** a partir de outro aplicativo. O app busca a imagem do conteúdo. Sites que não fornecem prévia aparecem com o domínio.
+- No Instagram ou em outro app, escolha **Compartilhar → Save It!** no menu do Android. Quando a publicação inclui um link, ele é salvo imediatamente no **Mural**, em **Sem pasta**. Não é preciso confirmar. Se o app enviar apenas um arquivo de vídeo, use a opção de compartilhar o link da publicação.
+- Para cadastrar um endereço manualmente, toque em **+ Link**. O app busca a imagem do conteúdo. Sites que não fornecem prévia aparecem com o domínio.
 - Em **Pastas**, crie uma pasta e entre nela para criar uma subpasta. Mantenha pressionado o nome de uma pasta para renomeá-la. O menu de cada marcador permite alterar a pasta, o título e a nota.
 - Toque em **✓** para concluir um marcador. A aba **Concluídos** mantém o vínculo com a pasta e permite restaurá-lo.
 - Em **Ajustes**, escolha a cor e importe ou exporte os favoritos pelo seletor de arquivos do Android. JSON preserva notas, hierarquia e conclusão. HTML segue o formato de favoritos dos navegadores.
