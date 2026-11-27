@@ -18,7 +18,8 @@ async function pickDocument() {
   let lastTree = "";
   for (let attempt = 0; attempt < 15; attempt++) {
     await delay(500);
-    adb("shell", "uiautomator", "dump", "/sdcard/picker.xml");
+    const dump = adb("shell", "uiautomator", "dump", "/sdcard/picker.xml");
+    if (!dump.includes("dumped to")) continue;
     lastTree = adb("shell", "cat", "/sdcard/picker.xml");
     const nodes = lastTree.match(/<node\s[^>]+>/g) || [];
     const file = nodes.find(node => node.includes('text="' + name + '"'));
@@ -39,6 +40,8 @@ async function pickDocument() {
   writeFileSync(local, JSON.stringify(fixture, null, 2));
   adb("push", local, "/sdcard/Download/" + name);
   adb("shell", "am", "broadcast", "-a", "android.intent.action.MEDIA_SCANNER_SCAN_FILE", "-d", "file:///sdcard/Download/" + name);
+  adb("shell", "input", "keyevent", "KEYCODE_WAKEUP");
+  adb("shell", "wm", "dismiss-keyguard");
   adb("shell", "am", "start", "-W", "-n", "br.com.saveit/.MainActivity");
   await inspectDevice(async (evaluate, waitFor) => {
     await waitFor('!!document.querySelector("[data-nav=settings]")');
