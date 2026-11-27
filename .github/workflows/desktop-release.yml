@@ -24,14 +24,18 @@ jobs:
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
           node --test desktop/check-import.cjs
           node desktop/check.cjs
-          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0")) { node desktop/check-android.cjs }
+          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0")) { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.13.0 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.14.0 ]]; then
+            git show 6462c5529bde59984c567be68fd152c346423854:downloads/Save-It-1.14.0.apk > Save-It-1.14.0.apk
+            echo '182d11c9a0cbcff350d3897a7fb1b84743a7347d5e8f563fa9d4deeb6444422e  Save-It-1.14.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.14.0.apk --verify-tag --latest --title 'Save It! 1.14.0 — pop-ups e navegação com movimento' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.13.0 ]]; then
             git show 562f471f19c13987215ce4a291999ee78de5a9a7:downloads/Save-It-1.13.0.apk > Save-It-1.13.0.apk
             echo 'aa785ebaa285486e90fe7b0d8fd31c24e9dfa336ef3bcd3e20ff2b8f7b1fa9ac  Save-It-1.13.0.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.13.0.apk --verify-tag --latest --title 'Save It! 1.13.0 — bordas e marca-texto animados' --notes-file desktop/release.md

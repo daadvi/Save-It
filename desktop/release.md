@@ -1,5 +1,5 @@
-Os traços dos quadros vazios e do aviso de links de exemplo se movem devagar ao redor da borda. Os pop-ups sobem ao abrir, e os destaques dos títulos aparecem da esquerda para a direita, como uma passada de marca-texto.
+Os traços das bordas agora têm mais contraste e se movem de forma contínua. Os pop-ups sobem ao abrir e descem ao fechar.
 
-Com movimento reduzido, a interface exibe os traços e os destaques estáticos.
+Ao salvar ou concluir um marcador, um visto animado acompanha a confirmação. O título desliza ao navegar entre pastas e subpastas, e a aba selecionada dá um pequeno salto na dock. Os efeitos seguem a preferência do dispositivo por movimento reduzido.
 
-Baixe **Save-It-1.13.0.apk** para Android ou **Save-It.html** para o computador.
+Baixe **Save-It-1.14.0.apk** para Android ou **Save-It.html** para o computador.
