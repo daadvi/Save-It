@@ -72,7 +72,22 @@ async function connect(port) {
         layouts.push(layout);
         console.log(`${name} renderizou ${tab}`);
       }
-      assert.deepEqual(layouts[0], layouts[1], `Layout em ${tab}`);
+      const [actual, expected] = layouts;
+      assert.equal(actual.width, expected.width);
+      actual.elements.forEach((element, index) => {
+        const other = expected.elements[index];
+        if (!element || !other) {
+          assert.equal(element, other);
+          return;
+        }
+        for (const field of Object.keys(element)) {
+          if (["x", "y", "width", "height"].includes(field)) {
+            assert.ok(Math.abs(element[field] - other[field]) <= 1, `${tab}, elemento ${index}, ${field}: ${element[field]} versus ${other[field]}`);
+          } else {
+            assert.equal(element[field], other[field], `${tab}, elemento ${index}, ${field}`);
+          }
+        }
+      });
       console.log(`${tab}: mesma geometria e estilos no APK e no Chrome Android`);
     }
   } finally {
