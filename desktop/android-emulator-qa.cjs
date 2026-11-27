@@ -1,15 +1,17 @@
 const assert = require("node:assert/strict");
-const { writeFileSync } = require("node:fs");
+const { execFileSync } = require("node:child_process");
 
 async function connect(port) {
   const pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
   const target = pages.find((entry) => entry.url.includes("Save-It.html"));
   assert.ok(target, `HTML target not available on ${port}`);
+  console.log(`Conectando a ${target.url} na porta ${port}`);
   const socket = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
     socket.addEventListener("open", resolve, { once: true });
     socket.addEventListener("error", reject, { once: true });
   });
+  socket.addEventListener("close", () => { for (const call of queue.values()) call.reject(new Error("CDP closed")); });
   let id = 0;
   const queue = new Map();
   socket.addEventListener("message", (event) => {
@@ -31,20 +33,20 @@ async function connect(port) {
       assert.ok(!exceptionDetails, JSON.stringify(exceptionDetails));
       return result.value;
     },
-    async screenshot(path) {
-      const { data } = await send("Page.captureScreenshot");
-      writeFileSync(path, Buffer.from(data, "base64"));
-    },
     close() { socket.close(); },
   };
 }
 
 (async () => {
+  const deadline = setTimeout(() => { console.error("CDP timed out"); process.exit(1); }, 45000);
+  execFileSync("adb", ["shell", "am", "start", "-n", "br.com.saveit/.MainActivity"]);
   const apk = await connect(9224);
   const html = await connect(9223);
   try {
     const data = await apk.evaluate(`JSON.parse(localStorage.getItem("save-it:desktop:v1"))`);
     assert.ok(data.bookmarks.some((link) => link.url === "https://example.org/migracao"), "O link da versão anterior foi migrado");
+    console.log("Migração verificada no APK.");
+    execFileSync("adb", ["shell", "am", "start", "-a", "android.intent.action.VIEW", "-d", "http://127.0.0.1:8765/Save-It.html", "-p", "com.android.chrome"]);
     // Give the two pages exactly the same collection before comparing any layout.
     await html.evaluate(`localStorage.setItem("save-it:desktop:v1", ${JSON.stringify(JSON.stringify(data))}); location.reload()`);
     let firstTab;
@@ -68,12 +70,13 @@ async function connect(port) {
           }) };
         })()`);
         layouts.push(layout);
-        await page.screenshot(`/tmp/android-${name}-${tab}.png`);
+        console.log(`${name} renderizou ${tab}`);
       }
       assert.deepEqual(layouts[0], layouts[1], `Layout em ${tab}`);
       console.log(`${tab}: mesma geometria e estilos no APK e no Chrome Android`);
     }
   } finally {
+    clearTimeout(deadline);
     apk.close();
     html.close();
   }
