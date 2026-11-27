@@ -55,9 +55,9 @@ class MainActivity : Activity() {
             }
         }
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(12), dp(7), dp(12), 0) }
+        column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(7), dp(18), 0) }
         frame.addView(column, LinearLayout.LayoutParams(-1, 0, 1f))
-        dock = LinearLayout(this).apply { setPadding(dp(4), dp(4), dp(4), dp(4)); setBackgroundColor(ink) }
+        dock = LinearLayout(this).apply { setPadding(dp(8), dp(7), dp(8), dp(7)); background = panel(Color.WHITE) }
         frame.addView(dock)
         setContentView(frame)
         if (state == null) receiveShare(intent)
@@ -111,42 +111,70 @@ class MainActivity : Activity() {
     private fun show() {
         column.removeAllViews()
         dock.removeAllViews()
-        destinations.forEachIndexed { index, text ->
-            dock.weighted(action(text, if (index == tab) accent else paper) {
+        val nav = listOf("▦\nInício", "▱\nPastas", "✓\nConcluídos", "⚙\nAjustes")
+        nav.forEachIndexed { index, text ->
+            val button = action(text, if (index == tab) accent else Color.WHITE) {
                 tab = index; query = ""; show()
-            }.apply { textSize = 12f }, dp(48))
+            }.apply { textSize = 12f; setPadding(dp(2), dp(3), dp(2), dp(3)); setTextColor(ink) }
+            dock.weighted(button, dp(54))
         }
-        val header = row()
-        header.addView(ImageView(this).apply { setImageResource(br.com.saveit.R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(42), dp(42)))
-        header.weighted(label("Save It!", 34, true))
-        header.addView(action("+ Link", accent) { linkEditor() })
+        val header = row().apply { setPadding(dp(4), dp(7), dp(4), dp(12)) }
+        header.addView(ImageView(this).apply { setImageResource(R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(36), dp(36)))
+        header.weighted(label("Save It!", 27, true).apply { setPadding(dp(7), 0, 0, 0) })
+        header.addView(action("+ Salvar", accent) { linkEditor() })
         column.addView(header)
-        column.addView(label(destinations[tab], 24, true))
+
+        val eyebrow = when (tab) {
+            1 -> "CADA IDEIA NO SEU LUGAR"
+            2 -> "MISSÃO CUMPRIDA"
+            3 -> "DEIXE COM A SUA CARA"
+            else -> "GUARDE AGORA. DESCUBRA DEPOIS."
+        }
+        column.addView(label("━  $eyebrow", 11, true).apply { letterSpacing = .11f })
+        val heading = when (tab) {
+            1 -> "Um universo de pastas."
+            2 -> "Visto. Lido. Concluído."
+            3 -> "Seu espaço. Suas regras."
+            else -> "Tudo que inspira, num lugar só."
+        }
+        column.addView(label(heading, 31, true).apply {
+            setPadding(0, dp(4), 0, dp(5)); maxLines = 2
+        })
+        column.addView(label(when (tab) {
+            1 -> "Organize suas descobertas. Do seu jeito."
+            2 -> "Suas descobertas já exploradas, sempre à mão."
+            3 -> "Pequenos ajustes para uma coleção que é sua."
+            else -> "Links incríveis merecem mais do que uma aba esquecida."
+        }, 14).apply { setTextColor(Color.DKGRAY); setPadding(0, 0, 0, dp(12)) })
         if (tab == 3) { settings(); return }
-        val tools = row()
-        tools.weighted(action(query.ifBlank { "Buscar" }, Color.WHITE) {
+        column.addView(label("${library.links.count { it.done == (tab == 2) }} links  ·  ${library.folders.size} pastas", 13).apply {
+            setPadding(0, 0, 0, dp(12)); setTextColor(Color.DKGRAY)
+        })
+        val search = action(if (query.isBlank()) "⌕   Buscar nos seus links..." else "⌕   $query", Color.WHITE) {
             val input = EditText(this).apply { setSingleLine(); setText(query); hint = "Título ou endereço" }
             AlertDialog.Builder(this).setTitle("Buscar marcadores").setView(input)
                 .setPositiveButton("Buscar") { _, _ -> query = input.text.toString().trim(); show() }
                 .setNeutralButton("Limpar") { _, _ -> query = ""; show() }.setNegativeButton("Cancelar", null).show()
-        })
+        }.apply { gravity = Gravity.CENTER_VERTICAL or Gravity.START; setPadding(dp(14), 0, dp(14), 0) }
+        column.addView(search, LinearLayout.LayoutParams(-1, dp(46)).apply { bottomMargin = dp(10) })
+        val tools = row()
         if (tab == 1) {
-            tools.weighted(action("+ Pasta", accent) { folderEditor() })
-        } else if (tab == 2) {
-            tools.weighted(action(if (doneFolder == null) "Todas as pastas" else folderName(doneFolder), accent) {
-                select("Concluídos por pasta", listOf("Todas as pastas") + library.folders.map { path(it.id) }) {
+            tools.weighted(action("+ Nova pasta", accent) { folderEditor() }, dp(42))
+        } else {
+            tools.weighted(action(if (tab == 2 && doneFolder != null) folderName(doneFolder) else "Todas as pastas", Color.WHITE) {
+                select("Filtrar por pasta", listOf("Todas as pastas") + library.folders.map { path(it.id) }) {
                     doneFolder = library.folders.getOrNull(it - 1)?.id; show()
                 }
-            })
+            }, dp(42))
         }
         column.addView(tools)
         if (tab == 1) {
-            val folderBar = LinearLayout(this)
+            val folderBar = LinearLayout(this).apply { setPadding(0, dp(10), 0, dp(7)) }
             if (folderId != null) folderBar.addView(action("‹ Voltar", Color.WHITE) {
                 folderId = library.folders.find { it.id == folderId }?.parent; show()
             })
             library.folders.filter { it.parent == folderId }.forEach { f ->
-                folderBar.addView(action("▰  " + f.name, accent) { folderId = f.id; show() }.apply {
+                folderBar.addView(action("▱  " + f.name, accent) { folderId = f.id; show() }.apply {
                     setOnLongClickListener { folderEditor(f); true }
                 })
             }
@@ -161,13 +189,23 @@ class MainActivity : Activity() {
             }
             b.done == (tab == 2) && inFolder && (b.title.contains(query, true) || b.url.contains(query, true) || b.note.contains(query, true))
         }.sortedByDescending { if (tab == 2) it.completed else it.created }
+        column.addView(label("SUAS DESCOBERTAS  ━  ${items.size} marcadores", 12, true).apply {
+            letterSpacing = .06f; setPadding(0, dp(20), 0, dp(12))
+        })
         if (items.isEmpty()) {
-            val empty = label(when {
-                query.isNotEmpty() -> "Nenhum resultado para “$query”."
-                tab == 2 -> "Os links que você concluir aparecerão aqui."
-                else -> "Salve seu primeiro link com + Link."
-            }, 17).apply { gravity = Gravity.CENTER }
-            column.addView(empty, LinearLayout.LayoutParams(-1, 0, 1f))
+            val empty = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
+                background = panel(Color.WHITE); setPadding(dp(16), dp(26), dp(16), dp(26))
+            }
+            empty.addView(label("✳", 35, true))
+            empty.addView(label(if (query.isNotBlank()) "Nenhum link por aqui" else "Espaço para novas descobertas", 21, true))
+            empty.addView(label(when {
+                query.isNotBlank() -> "Tente outro termo ou ajuste os filtros."
+                tab == 2 -> "Seus links concluídos aparecerão aqui."
+                else -> "Salve um link e comece sua coleção."
+            }, 14))
+            if (tab != 2) empty.addView(action("+ Salvar um link", accent) { linkEditor() })
+            column.addView(empty, LinearLayout.LayoutParams(-1, -2))
             return
         }
         grid = RecyclerView(this).apply {

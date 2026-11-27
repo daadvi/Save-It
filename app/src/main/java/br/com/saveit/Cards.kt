@@ -18,20 +18,21 @@ val paper = Color.rgb(248, 246, 237)
 fun Context.dp(value: Int) = (resources.displayMetrics.density * value + .5f).toInt()
 fun Context.panel(color: Int) = GradientDrawable().apply {
     setColor(color)
-    cornerRadius = dp(6).toFloat()
+    cornerRadius = dp(5).toFloat()
     setStroke(dp(2), ink)
 }
 fun Context.label(value: String, size: Int, bold: Boolean = false) = TextView(this).apply {
     text = value
     textSize = size.toFloat()
     setTextColor(ink)
-    if (bold) typeface = Typeface.DEFAULT_BOLD
+    if (bold) typeface = Typeface.create("sans-serif", Typeface.BOLD)
 }
 fun Context.action(value: String, color: Int, block: () -> Unit) = Button(this).apply {
     text = value
     isAllCaps = false
     setTextColor(ink)
     background = panel(color)
+    elevation = dp(3).toFloat()
     setPadding(dp(7), 0, dp(7), 0)
     minimumWidth = 0
     minWidth = 0
@@ -56,9 +57,10 @@ class Cards(
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = panel(Color.WHITE)
-            setPadding(dp(3), dp(3), dp(3), dp(4))
+            setPadding(dp(3), dp(3), dp(3), dp(6))
+            elevation = dp(3).toFloat()
             layoutParams = StaggeredGridLayoutManager.LayoutParams(-1, -2).apply {
-                setMargins(dp(4), dp(4), dp(4), dp(5))
+                setMargins(dp(5), dp(5), dp(5), dp(8))
             }
         }
         val cover = FrameLayout(this).apply { setBackgroundColor(accent) }
@@ -67,8 +69,8 @@ class Cards(
         cover.addView(domain, FrameLayout.LayoutParams(-1, -1))
         cover.addView(image, FrameLayout.LayoutParams(-1, -1))
         box.addView(cover)
-        val title = label("", 18, true).apply { maxLines = 3; setPadding(dp(7), dp(8), dp(7), 0) }
-        val folder = label("", 13).apply { setPadding(dp(7), dp(4), dp(7), dp(8)) }
+        val title = label("", 18, true).apply { maxLines = 3; setPadding(dp(9), dp(9), dp(9), 0) }
+        val folder = label("", 13).apply { setPadding(dp(9), dp(4), dp(9), dp(8)) }
         box.addView(title)
         box.addView(folder)
         val row = LinearLayout(this)
@@ -84,7 +86,7 @@ class Cards(
         val item = items[position]
         val context = box.context
         (box.layoutParams as StaggeredGridLayoutManager.LayoutParams).isFullSpan = position % 7 == 4
-        cover.layoutParams = LinearLayout.LayoutParams(-1, context.dp(listOf(116, 218, 156, 185, 148, 236, 126)[position % 7]))
+        cover.layoutParams = LinearLayout.LayoutParams(-1, context.dp(listOf(126, 250, 175, 215, 160, 275, 145)[position % 7]))
         domain.text = URI(item.url).host
         image.load(item.image.takeIf { it.isNotBlank() }) { crossfade(true) }
         title.text = item.title
