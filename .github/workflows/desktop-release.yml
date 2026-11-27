@@ -24,14 +24,18 @@ jobs:
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
           node --test desktop/check-import.cjs
           node desktop/check.cjs
-          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1")) { node desktop/check-android.cjs }
+          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2")) { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.8.1 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.8.2 ]]; then
+            git show ad48982250c01ddb45a5f16a66e8024c3eb6e9d4:downloads/Save-It-1.8.2.apk > Save-It-1.8.2.apk
+            echo '429df18b19007f0e0e24c2a1ecc53af8ac727f5292ac86e5047e663adc0b639e  Save-It-1.8.2.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.8.2.apk --verify-tag --latest --title 'Save It! 1.8.2 — espaçamento dos filtros de pastas' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.8.1 ]]; then
             git show 92e63a4c3e5644ddc49a23e6d0af933fac2e36ef:downloads/Save-It-1.8.1.apk > Save-It-1.8.1.apk
             echo 'eca5d17d179d829194758e44164509a7412300fb06ddfbcd0384c31e3e001f27  Save-It-1.8.1.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.8.1.apk --verify-tag --latest --title 'Save It! 1.8.1 — dock mais baixa no Android' --notes-file desktop/release.md

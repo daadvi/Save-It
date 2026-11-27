@@ -1,3 +1,3 @@
-A dock do Android fica mais perto da barra de navegação do sistema, com espaço para a sombra inteira. O ajuste vale em todas as abas.
+No celular, os filtros **Pendentes**, **Concluídos** e **Todos** ficam 16 px abaixo da borda do quadro de pasta vazia.
 
-Baixe **Save-It-1.8.1.apk** para atualizar o aplicativo Android ou **Save-It.html** para abrir a biblioteca no computador.
+Baixe **Save-It-1.8.2.apk** para Android ou **Save-It.html** para abrir a biblioteca no navegador.
