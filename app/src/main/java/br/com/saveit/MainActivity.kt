@@ -21,6 +21,10 @@ class MainActivity : Activity() {
     private var folderId: String? = null
     private var doneFolder: String? = null
     private var query = ""
+    private var selectedType = 0
+    private var sortOrder = 0
+    private var selectedFolder: String? = null
+    private var folderStatus = 0
     private var accent = Color.rgb(201, 183, 252)
     private lateinit var column: LinearLayout
     private lateinit var grid: RecyclerView
@@ -111,101 +115,130 @@ class MainActivity : Activity() {
     private fun show() {
         column.removeAllViews()
         dock.removeAllViews()
-        val nav = listOf("▦\nInício", "▱\nPastas", "✓\nConcluídos", "⚙\nAjustes")
-        nav.forEachIndexed { index, text ->
-            val button = action(text, if (index == tab) accent else Color.WHITE) {
-                tab = index; query = ""; show()
-            }.apply { textSize = 12f; setPadding(dp(2), dp(3), dp(2), dp(3)); setTextColor(ink) }
-            dock.weighted(button, dp(54))
+        val navLabels = listOf("▦  Início", "▱  Pastas", "◉  Concluídos", "⚙  Configurações")
+        val dockShell = LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            background = outlined()
+            elevation = dp(5).toFloat()
+            setPadding(dp(4), dp(4), dp(4), dp(4))
         }
-        val header = row().apply { setPadding(dp(4), dp(7), dp(4), dp(12)) }
-        header.addView(ImageView(this).apply { setImageResource(R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(36), dp(36)))
-        header.weighted(label("Save It!", 27, true).apply { setPadding(dp(7), 0, 0, 0) })
-        header.addView(action("+ Salvar", accent) { linkEditor() })
-        column.addView(header)
+        navLabels.forEachIndexed { index, title ->
+            val item = text(title, 11, index == tab).apply {
+                gravity = Gravity.CENTER
+                background = if (index == tab) outlined(honey) else null
+                setOnClickListener { tab = index; query = ""; show() }
+            }
+            dockShell.addView(item, LinearLayout.LayoutParams(0, dp(45), 1f))
+        }
+        dock.addView(dockShell, LinearLayout.LayoutParams(-1, -2))
 
-        val eyebrow = when (tab) {
-            1 -> "CADA IDEIA NO SEU LUGAR"
-            2 -> "MISSÃO CUMPRIDA"
-            3 -> "DEIXE COM A SUA CARA"
-            else -> "GUARDE AGORA. DESCUBRA DEPOIS."
+        val brand = row().apply { setPadding(dp(1), dp(5), dp(1), dp(14)) }
+        brand.addView(ImageView(this).apply { setImageResource(R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(34), dp(34)))
+        brand.addView(text("Save It!", 26, true).apply { setPadding(dp(7), 0, dp(9), 0) })
+        brand.addView(text("│  Biblioteca local", 12, color = subtle), LinearLayout.LayoutParams(0, -2, 1f))
+        brand.addView(text("●", 13, color = Color.rgb(65, 130, 70)))
+        column.addView(brand)
+        column.addView(View(this).apply { setBackgroundColor(ink) }, LinearLayout.LayoutParams(-1, dp(2)))
+        column.addSpace(this, 25)
+        val eyebrow = listOf("BIBLIOTECA LOCAL", "CADA IDEIA NO SEU LUGAR", "MISSÃO CUMPRIDA", "DEIXE COM A SUA CARA")[tab]
+        column.addView(text("━  $eyebrow", 11, true).apply { letterSpacing = .13f })
+        column.addSpace(this, 10)
+        val heading = row()
+        val parts = listOf(
+            "Meu" to "mural.", "Um universo de" to "pastas.",
+            "Visto. Lido." to "Concluído.", "Seu espaço." to "Suas regras."
+        )[tab]
+        heading.addView(text(parts.first + " ", 27, true))
+        heading.addView(text(parts.second, 27, true).apply { setBackgroundColor(honey); setPadding(dp(4), 0, dp(4), 0) })
+        column.addView(heading)
+        column.addSpace(this, 10)
+        val subtitle = listOf(
+            "Seus links pendentes de todas as pastas.", "Organize suas descobertas. Do seu jeito.",
+            "Suas descobertas já exploradas, sempre à mão.", "Pequenos ajustes para uma coleção que é sua."
+        )[tab]
+        column.addView(text(subtitle, 14, color = subtle))
+        column.addSpace(this, 12)
+        if (tab != 3) {
+            column.addView(action("+ Salvar link", honey) { linkEditor() }, LinearLayout.LayoutParams(-1, dp(46)))
+            column.addSpace(this, 16)
         }
-        column.addView(label("━  $eyebrow", 11, true).apply { letterSpacing = .11f })
-        val heading = when (tab) {
-            1 -> "Um universo de pastas."
-            2 -> "Visto. Lido. Concluído."
-            3 -> "Seu espaço. Suas regras."
-            else -> "Tudo que inspira, num lugar só."
-        }
-        column.addView(label(heading, 31, true).apply {
-            setPadding(0, dp(4), 0, dp(5)); maxLines = 2
-        })
-        column.addView(label(when (tab) {
-            1 -> "Organize suas descobertas. Do seu jeito."
-            2 -> "Suas descobertas já exploradas, sempre à mão."
-            3 -> "Pequenos ajustes para uma coleção que é sua."
-            else -> "Links incríveis merecem mais do que uma aba esquecida."
-        }, 14).apply { setTextColor(Color.DKGRAY); setPadding(0, 0, 0, dp(12)) })
         if (tab == 3) { settings(); return }
-        column.addView(label("${library.links.count { it.done == (tab == 2) }} links  ·  ${library.folders.size} pastas", 13).apply {
-            setPadding(0, 0, 0, dp(12)); setTextColor(Color.DKGRAY)
-        })
-        val search = action(if (query.isBlank()) "⌕   Buscar nos seus links..." else "⌕   $query", Color.WHITE) {
-            val input = EditText(this).apply { setSingleLine(); setText(query); hint = "Título ou endereço" }
-            AlertDialog.Builder(this).setTitle("Buscar marcadores").setView(input)
-                .setPositiveButton("Buscar") { _, _ -> query = input.text.toString().trim(); show() }
-                .setNeutralButton("Limpar") { _, _ -> query = ""; show() }.setNegativeButton("Cancelar", null).show()
-        }.apply { gravity = Gravity.CENTER_VERTICAL or Gravity.START; setPadding(dp(14), 0, dp(14), 0) }
-        column.addView(search, LinearLayout.LayoutParams(-1, dp(46)).apply { bottomMargin = dp(10) })
-        val tools = row()
         if (tab == 1) {
-            tools.weighted(action("+ Nova pasta", accent) { folderEditor() }, dp(42))
-        } else {
-            tools.weighted(action(if (tab == 2 && doneFolder != null) folderName(doneFolder) else "Todas as pastas", Color.WHITE) {
-                select("Filtrar por pasta", listOf("Todas as pastas") + library.folders.map { path(it.id) }) {
-                    doneFolder = library.folders.getOrNull(it - 1)?.id; show()
-                }
-            }, dp(42))
-        }
-        column.addView(tools)
-        if (tab == 1) {
-            val folderBar = LinearLayout(this).apply { setPadding(0, dp(10), 0, dp(7)) }
+            val newFolder = action("+ Nova pasta", Color.WHITE) { folderEditor() }
+            column.addView(newFolder, LinearLayout.LayoutParams(-1, dp(45)))
+            column.addSpace(this, 17)
+            val folderBar = LinearLayout(this)
             if (folderId != null) folderBar.addView(action("‹ Voltar", Color.WHITE) {
                 folderId = library.folders.find { it.id == folderId }?.parent; show()
             })
             library.folders.filter { it.parent == folderId }.forEach { f ->
-                folderBar.addView(action("▱  " + f.name, accent) { folderId = f.id; show() }.apply {
+                folderBar.addView(action("▱  " + f.name, honey) { folderId = f.id; show() }.apply {
                     setOnLongClickListener { folderEditor(f); true }
                 })
             }
-            if (folderId != null) column.addView(label(path(folderId), 14, true))
+            if (folderId != null) column.addView(text(path(folderId), 14, true))
             column.addView(HorizontalScrollView(this).apply { addView(folderBar) })
+            if (library.folders.isEmpty()) {
+                val emptyFolders = emptyPanel("Sua primeira pasta está esperando", "Crie um lugar para suas próximas descobertas.")
+                emptyFolders.addView(action("Nova pasta", honey) { folderEditor() })
+                column.addView(emptyFolders, LinearLayout.LayoutParams(-1, -2))
+            }
+            val statuses = row()
+            listOf("Pendentes", "Concluídos", "Todos").forEachIndexed { i, name ->
+                statuses.addView(chip(name, folderStatus == i) { folderStatus = i; show() })
+            }
+            column.addView(statuses)
+            column.addSpace(this, 12)
+        } else {
+            column.addView(text("${library.links.count { it.done == (tab == 2) }} links salvos    ·    ${library.folders.size} pastas", 13, color = subtle))
+            column.addSpace(this, 17)
         }
+        val searchRow = row()
+        val search = action(if (query.isEmpty()) "⌕  Buscar nos seus links..." else "⌕  $query", Color.WHITE) {
+            val input = EditText(this).apply { setSingleLine(); setText(query); hint = "Título ou endereço" }
+            AlertDialog.Builder(this).setTitle("Buscar marcadores").setView(input)
+                .setPositiveButton("Buscar") { _, _ -> query = input.text.toString().trim(); show() }
+                .setNeutralButton("Limpar") { _, _ -> query = ""; show() }.setNegativeButton("Cancelar", null).show()
+        }.apply { gravity = Gravity.CENTER_VERTICAL or Gravity.START; setPadding(dp(11), 0, 0, 0) }
+        searchRow.weighted(search, dp(44))
+        val folders = listOf("Todas as pastas") + library.folders.map { path(it.id) }
+        val folderFilter = action(if (selectedFolder == null) "Todas ▾" else folderName(selectedFolder), Color.WHITE) {
+            select("Filtrar por pasta", folders) { selectedFolder = library.folders.getOrNull(it - 1)?.id; show() }
+        }
+        searchRow.addView(folderFilter, LinearLayout.LayoutParams(dp(115), dp(44)).apply { leftMargin = dp(7) })
+        column.addView(searchRow)
+        column.addSpace(this, 12)
+        val chips = LinearLayout(this)
+        listOf("▦ Todos", "♧ Sites", "▣ Vídeos", "▧ Imagens", "♧ Jogos").forEachIndexed { i, name ->
+            chips.addView(chip(name, selectedType == i) { selectedType = i; show() }.apply {
+                layoutParams = LinearLayout.LayoutParams(-2, -2).apply { rightMargin = dp(6) }
+            })
+        }
+        column.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(chips) })
+        column.addSpace(this, 17)
         val items = library.links.filter { b ->
-            val inFolder = when (tab) {
+            val folderMatch = when (tab) {
                 1 -> b.folder == folderId
                 2 -> doneFolder == null || library.path(b.folder).any { it.id == doneFolder }
+                else -> selectedFolder == null || library.path(b.folder).any { it.id == selectedFolder }
+            }
+            val statusMatch = if (tab == 1) folderStatus == 2 || b.done == (folderStatus == 1) else b.done == (tab == 2)
+            val kind = when (selectedType) {
+                2 -> b.url.contains("youtube", true) || b.url.contains("vimeo", true) || b.url.contains("instagram", true)
+                3 -> b.url.substringBefore('?').matches(Regex(".*\\.(png|jpg|jpeg|webp|gif)", RegexOption.IGNORE_CASE))
+                4 -> b.url.contains("steampowered", true) || b.url.contains("itch.io", true)
+                1 -> !b.url.contains("youtube", true) && !b.url.contains("instagram", true)
                 else -> true
             }
-            b.done == (tab == 2) && inFolder && (b.title.contains(query, true) || b.url.contains(query, true) || b.note.contains(query, true))
+            folderMatch && statusMatch && kind && (b.title.contains(query, true) || b.url.contains(query, true) || b.note.contains(query, true))
         }.sortedByDescending { if (tab == 2) it.completed else it.created }
-        column.addView(label("SUAS DESCOBERTAS  ━  ${items.size} marcadores", 12, true).apply {
-            letterSpacing = .06f; setPadding(0, dp(20), 0, dp(12))
-        })
+        column.addView(text("SUAS DESCOBERTAS   ${items.size} marcadores ─────────", 11, true))
+        column.addSpace(this, 10)
         if (items.isEmpty()) {
-            val empty = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER
-                background = panel(Color.WHITE); setPadding(dp(16), dp(26), dp(16), dp(26))
-            }
-            empty.addView(label("✳", 35, true))
-            empty.addView(label(if (query.isNotBlank()) "Nenhum link por aqui" else "Espaço para novas descobertas", 21, true))
-            empty.addView(label(when {
-                query.isNotBlank() -> "Tente outro termo ou ajuste os filtros."
-                tab == 2 -> "Seus links concluídos aparecerão aqui."
-                else -> "Salve um link e comece sua coleção."
-            }, 14))
-            if (tab != 2) empty.addView(action("+ Salvar um link", accent) { linkEditor() })
-            column.addView(empty, LinearLayout.LayoutParams(-1, -2))
+            val title = if (query.isNotEmpty()) "Nenhum link por aqui" else if (tab == 2) "Nada concluído ainda" else "Espaço para novas descobertas"
+            val panel = emptyPanel(title, if (query.isNotEmpty()) "Tente outro termo ou ajuste os filtros." else "Salve um link e comece sua coleção.")
+            if (tab != 2) panel.addView(action("+ Salvar link", honey) { linkEditor() })
+            column.addView(panel, LinearLayout.LayoutParams(-1, -2))
             return
         }
         grid = RecyclerView(this).apply {
@@ -213,6 +246,18 @@ class MainActivity : Activity() {
             adapter = Cards(items, library.folders.associateBy { it.id }, accent, ::openLink, { linkEditor(it) }, ::complete, ::resolve)
         }
         column.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
+    }
+
+    private fun emptyPanel(title: String, description: String) = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER
+        background = outlined(dashed = true)
+        setPadding(dp(16), dp(45), dp(16), dp(45))
+        addView(text("✳", 33))
+        addView(text(title, 20, true))
+        addSpace(this@MainActivity, 8)
+        addView(text(description, 13, color = subtle))
+        addSpace(this@MainActivity, 17)
     }
 
     private fun openLink(link: Link) {
@@ -283,21 +328,54 @@ class MainActivity : Activity() {
     }
     private fun settings() {
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        column.addView(ScrollView(this).apply { addView(list) })
-        list.addView(label("Cor de destaque", 18, true))
-        val names = listOf("Lilás", "Menta", "Mel", "Rosa")
-        val colors = listOf("#C9B7FC", "#ACDFBE", "#FFD278", "#FFB7CA")
-        val colorsRow = row()
-        names.forEachIndexed { i, name -> colorsRow.weighted(action(name, Color.parseColor(colors[i])) {
-            accent = Color.parseColor(colors[i]); prefs.edit().putInt("accent", accent).apply(); show()
-        }) }
-        list.addView(colorsRow)
-        list.addView(label("Coleção neste dispositivo", 18, true))
-        list.addView(action("Importar JSON ou HTML", accent) {
+        column.addView(ScrollView(this).apply { addView(list) }, LinearLayout.LayoutParams(-1, 0, 1f))
+        val appearance = surface()
+        appearance.addView(text("Aparência", 21, true))
+        appearance.addSpace(this, 9)
+        appearance.addView(text("Uma cor para acompanhar suas descobertas.", 13, color = subtle))
+        appearance.addSpace(this, 14)
+        val colors = listOf("#C9B7FC", "#FFD17E", "#BCE5C8", "#FFB6CB", "#A9D9FA")
+        val colorRow = row()
+        colors.forEach { value ->
+            val color = Color.parseColor(value)
+            colorRow.addView(text(if (accent == color) "✓" else "", 18, true).apply {
+                gravity = Gravity.CENTER; background = outlined(color)
+                setOnClickListener { accent = color; prefs.edit().putInt("accent", accent).apply(); show() }
+            }, LinearLayout.LayoutParams(dp(38), dp(38)).apply { rightMargin = dp(10) })
+        }
+        appearance.addView(colorRow)
+        appearance.addSpace(this, 15)
+        appearance.addView(text("Tema", 13, true))
+        appearance.addView(action("Claro  ▾", Color.WHITE) { message("Tema claro selecionado") })
+        appearance.addSpace(this, 12)
+        appearance.addView(text("Tamanho dos cards", 13, true))
+        appearance.addView(action(if (prefs.getBoolean("compact", false)) "Compacto  ▾" else "Confortável  ▾", Color.WHITE) {
+            select("Tamanho dos cards", listOf("Confortável", "Compacto")) {
+                prefs.edit().putBoolean("compact", it == 1).apply(); show()
+            }
+        })
+        list.addView(appearance, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
+
+        val portable = surface()
+        portable.addView(text("Seus links vão com você", 21, true))
+        portable.addSpace(this, 9)
+        portable.addView(text("Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão.", 13, color = subtle))
+        portable.addSpace(this, 16)
+        portable.addView(action("Importar JSON / HTML", honey) {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), 1)
         })
-        list.addView(action("Exportar backup JSON", Color.WHITE) { export(false) })
-        list.addView(action("Exportar favoritos HTML", Color.WHITE) { export(true) })
+        portable.addSpace(this, 11)
+        val exports = row()
+        exports.weighted(action("Exportar JSON", Color.WHITE) { export(false) }, dp(45))
+        exports.weighted(action("Exportar HTML", Color.WHITE) { export(true) }, dp(45))
+        portable.addView(exports)
+        list.addView(portable, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
+
+        val previewsPanel = surface()
+        previewsPanel.addView(text("Prévias automáticas", 21, true))
+        previewsPanel.addSpace(this, 9)
+        previewsPanel.addView(text("As imagens dos links são consultadas quando há internet. Quando não há prévia, o domínio aparece no card.", 13, color = subtle))
+        list.addView(previewsPanel)
     }
     private fun export(html: Boolean) {
         exportHtml = html

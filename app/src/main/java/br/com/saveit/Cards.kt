@@ -14,7 +14,7 @@ import coil.load
 import java.net.URI
 
 val ink = Color.rgb(30, 29, 32)
-val paper = Color.rgb(248, 246, 237)
+val paper = Color.rgb(247, 247, 242)
 fun Context.dp(value: Int) = (resources.displayMetrics.density * value + .5f).toInt()
 fun Context.panel(color: Int) = GradientDrawable().apply {
     setColor(color)
