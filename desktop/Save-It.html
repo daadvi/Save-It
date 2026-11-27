@@ -1183,7 +1183,108 @@
         animation: appear 180ms ease-out;
       }
       #toast.show {
-        animation: appear 160ms ease-out;
+        animation: toast-enter 180ms cubic-bezier(.16, 1, .3, 1);
+      }
+      .choice-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        min-width: 0;
+        text-align: left;
+        padding-inline-end: 10px;
+      }
+      .field .choice-trigger {
+        padding: 12px;
+        border: var(--line);
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--ink);
+        width: 100%;
+      }
+      .choice-trigger span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .choice-trigger svg {
+        flex: none;
+        width: 16px;
+        height: 16px;
+        transition: transform 150ms ease-out;
+      }
+      .choice-trigger[aria-expanded="true"] svg {
+        transform: rotate(180deg);
+      }
+      #choice-dialog {
+        width: min(440px, calc(100% - 32px));
+        padding: 18px;
+        box-shadow: 6px 6px 0 var(--ink);
+        overflow: hidden;
+      }
+      #choice-dialog[open] {
+        display: flex;
+        flex-direction: column;
+        animation-duration: 180ms;
+      }
+      #choice-dialog .modal-head {
+        flex-shrink: 0;
+      }
+      #choice-title {
+        overflow-wrap: anywhere;
+        font-size: 22px;
+      }
+      #choice-options {
+        display: grid;
+        gap: 8px;
+        padding: 5px 8px 8px 5px;
+        min-height: 0;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      .choice-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: left;
+        min-height: 44px;
+        min-width: 0;
+        padding: 10px 12px;
+        border: var(--line);
+        border-radius: 4px;
+        background: var(--surface);
+        color: var(--ink);
+        overflow-wrap: anywhere;
+        box-shadow: 2px 2px 0 var(--ink);
+        transition: transform 120ms ease-out;
+      }
+      .choice-option[aria-pressed="true"] {
+        background: var(--accent);
+        color: #202020;
+        border-color: #202020;
+        font-weight: 700;
+      }
+      .choice-option[aria-pressed="true"] svg {
+        animation: arrive 180ms ease-out;
+      }
+      .choice-option:active {
+        transform: translate(2px, 2px);
+      }
+      .choice-option svg {
+        width: 17px;
+        height: 17px;
+        flex: none;
+      }
+      @media (max-width: 600px) {
+        #choice-dialog {
+          margin: auto auto 18px;
+          max-height: 70dvh;
+        }
+      }
+      @keyframes toast-enter {
+        from { opacity: 0; transform: translate(-50%, 6px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
       }
       @media (prefers-reduced-motion: reduce) {
         *,
@@ -1299,6 +1400,13 @@
     <main id="main" tabindex="-1"></main>
     <nav class="dock" aria-label="Navegação principal"></nav>
     <dialog id="modal"><div id="modal-content"></div></dialog>
+    <dialog id="choice-dialog" aria-labelledby="choice-title">
+      <div class="modal-head">
+        <h2 id="choice-title"></h2>
+        <button type="button" class="icon-btn" aria-label="Fechar seleção">×</button>
+      </div>
+      <div id="choice-options"></div>
+    </dialog>
     <div id="toast" role="status" aria-live="polite"></div>
     <input
       type="file"
@@ -1789,6 +1897,7 @@
           plus: '<path d="M12 4v16M4 12h16"/>',
           search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
           more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+          chevron: '<path d="m6 9 6 6 6-6"/>',
           close: '<path d="m6 6 12 12M6 18 18 6"/>',
           link: '<path d="m10 7 3-3a5 5 0 0 1 7 7l-3 3M14 17l-3 3a5 5 0 0 1-7-7l3-3M8 16l8-8"/>',
           video:
@@ -2042,10 +2151,12 @@
           });
         }
         function render() {
+          if (choiceDialog.open && main.contains(choiceTrigger)) closeChoices();
           applyPrefs();
           nav();
           if (view === "settings") {
             renderSettings();
+            enhanceSelects(main);
             return;
           }
           if (view === "folders") {
@@ -2070,6 +2181,7 @@
               ? `<div class="demo-banner"><span>✳ Uma dose de inspiração para começar. Estes links são exemplos.</span><button class="text-btn" id="clear-demo">Começar do zero</button></div>`
               : "") +
             '<section id="results" aria-label="Marcadores"></section>';
+          enhanceSelects(main);
           renderCards();
         }
         function renderFolders() {
@@ -2116,6 +2228,7 @@
               .join("")}</div>` +
             tools() +
             '<section id="results" aria-label="Marcadores da pasta"></section>';
+          enhanceSelects(main);
           renderCards();
         }
         function renderSettings() {
@@ -2128,11 +2241,91 @@
             ) +
             `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button><button class="button" data-import="links">Importar só os links</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As descrições e as imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
         }
+        const choiceDialog = document.querySelector("#choice-dialog");
+        const choiceOptions = document.querySelector("#choice-options");
+        let choiceTrigger = null;
+        function closeChoices() {
+          choiceTrigger?.setAttribute("aria-expanded", "false");
+          choiceTrigger = null;
+          choiceDialog.close();
+        }
+        function enhanceSelects(container) {
+          for (const select of container.querySelectorAll("select")) {
+            const label = select.getAttribute("aria-label") || select.labels[0]?.firstChild.textContent.trim();
+            const trigger = document.createElement("button");
+            trigger.type = "button";
+            trigger.className = [select.className, "choice-trigger"].join(" ");
+            trigger.setAttribute("aria-haspopup", "dialog");
+            trigger.setAttribute("aria-controls", "choice-dialog");
+            trigger.setAttribute("aria-expanded", "false");
+            trigger.innerHTML = `<span></span>${icon("chevron")}`;
+            function syncChoice() {
+              const value = select.selectedOptions[0]?.textContent.trim() || "";
+              trigger.firstElementChild.textContent = value;
+              trigger.setAttribute("aria-label", `${label}: ${value}`);
+            }
+            syncChoice();
+            select.addEventListener("change", syncChoice);
+            trigger.onclick = () => {
+              if (choiceDialog.open) return;
+              choiceTrigger = trigger;
+              trigger.setAttribute("aria-expanded", "true");
+              document.querySelector("#choice-title").textContent = label;
+              choiceOptions.innerHTML = Array.from(select.options, (option, index) =>
+                `<button type="button" class="choice-option" data-choice="${index}" aria-pressed="${option.selected}" ${option.disabled ? "disabled" : ""}><span>${e(option.textContent.trim())}</span>${option.selected ? icon("check") : ""}</button>`,
+              ).join("");
+              choiceOptions.onclick = event => {
+                const button = event.target.closest("[data-choice]");
+                if (!button || button.disabled || !select.isConnected) return;
+                const index = Number(button.dataset.choice);
+                closeChoices();
+                if (index === select.selectedIndex) return;
+                select.selectedIndex = index;
+                select.dispatchEvent(new Event("change", { bubbles: true }));
+                const currentSelect = select.id ? document.getElementById(select.id) : select;
+                currentSelect?.nextElementSibling?.focus({ preventScroll: true });
+              };
+              trigger.focus({ preventScroll: true });
+              choiceDialog.showModal();
+              (choiceOptions.querySelector('[aria-pressed="true"]:enabled') ||
+                choiceOptions.querySelector("button:enabled"))?.focus();
+            };
+            select.hidden = true;
+            select.after(trigger);
+          }
+        }
+        choiceDialog.querySelector("button").onclick = closeChoices;
+        choiceDialog.addEventListener("cancel", event => {
+          event.preventDefault();
+          closeChoices();
+        });
+        choiceDialog.addEventListener("click", event => {
+          if (event.target !== choiceDialog) return;
+          const rect = choiceDialog.getBoundingClientRect();
+          if (event.clientX < rect.left || event.clientX > rect.right ||
+              event.clientY < rect.top || event.clientY > rect.bottom) closeChoices();
+        });
+        choiceDialog.addEventListener("keydown", event => {
+          const keys = ["ArrowDown", "ArrowUp", "Home", "End"];
+          if (!keys.includes(event.key)) return;
+          const buttons = Array.from(choiceOptions.querySelectorAll("button:enabled"));
+          if (!buttons.length) return;
+          event.preventDefault();
+          const current = buttons.indexOf(document.activeElement);
+          let next = 0;
+          if (event.key === "End") next = buttons.length - 1;
+          if (event.key === "ArrowDown") next = (current + 1) % buttons.length;
+          if (event.key === "ArrowUp") next = current <= 0 ? buttons.length - 1 : current - 1;
+          buttons[next].focus();
+        });
         function openModal(title, body) {
+          if (choiceDialog.open) closeChoices();
           modalContent.innerHTML = `<div class="modal-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Fechar">${icon("close")}</button></div>${body}`;
+          enhanceSelects(modalContent);
           modal.showModal();
         }
         function closeModal() {
+          if (choiceDialog.open) closeChoices();
           previewToken++;
           modal.close();
         }
@@ -2187,6 +2380,7 @@
               state.folders.push(f);
               save();
               form.elements.folder.innerHTML = options(f.id);
+              form.elements.folder.dispatchEvent(new Event("change"));
               field.remove();
             };
           };
@@ -2560,7 +2754,7 @@
             !["INPUT", "TEXTAREA", "SELECT"].includes(
               document.activeElement.tagName,
             ) &&
-            !modal.open
+            !modal.open && !choiceDialog.open
           ) {
             ev.preventDefault();
             document.querySelector("#search")?.focus();
