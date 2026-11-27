@@ -7,6 +7,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
+import android.widget.FrameLayout
 import android.view.View
 import android.widget.*
 import androidx.recyclerview.widget.RecyclerView
@@ -25,7 +26,7 @@ class MainActivity : Activity() {
     private var sortOrder = 0
     private var selectedFolder: String? = null
     private var folderStatus = 0
-    private var accent = Color.rgb(201, 183, 252)
+    private var accent = Color.rgb(255, 207, 113)
     private lateinit var column: LinearLayout
     private lateinit var grid: RecyclerView
     private lateinit var dock: LinearLayout
@@ -50,8 +51,7 @@ class MainActivity : Activity() {
         doneFolder = state?.getString("doneFolder")
         query = state?.getString("query").orEmpty()
         exportHtml = state?.getBoolean("html") ?: false
-        val frame = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
+        val frame = FrameLayout(this).apply {
             setBackgroundColor(paper)
             setOnApplyWindowInsetsListener { v, insets ->
                 v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
@@ -59,10 +59,16 @@ class MainActivity : Activity() {
             }
         }
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(18), dp(7), dp(18), 0) }
-        frame.addView(column, LinearLayout.LayoutParams(-1, 0, 1f))
-        dock = LinearLayout(this).apply { setPadding(dp(8), dp(7), dp(8), dp(7)); background = panel(Color.WHITE) }
-        frame.addView(dock)
+        column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(7), dp(18), dp(100))
+        }
+        frame.addView(column, FrameLayout.LayoutParams(-1, -1))
+        dock = LinearLayout(this).apply {
+            setPadding(0, 0, 0, dp(12))
+            gravity = Gravity.CENTER
+        }
+        frame.addView(dock, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
         setContentView(frame)
         if (state == null) receiveShare(intent)
         show()
@@ -115,7 +121,7 @@ class MainActivity : Activity() {
     private fun show() {
         column.removeAllViews()
         dock.removeAllViews()
-        val navLabels = listOf("▦  Início", "▱  Pastas", "◉  Concluídos", "⚙  Configurações")
+        val navLabels = listOf("▦\nInício", "▱\nPastas", "◉\nConcluídos", "⚙\nAjustes")
         val dockShell = LinearLayout(this).apply {
             gravity = Gravity.CENTER
             background = outlined()
@@ -125,12 +131,13 @@ class MainActivity : Activity() {
         navLabels.forEachIndexed { index, title ->
             val item = text(title, 11, index == tab).apply {
                 gravity = Gravity.CENTER
-                background = if (index == tab) outlined(honey) else null
+                background = if (index == tab) outlined(accent) else null
                 setOnClickListener { tab = index; query = ""; show() }
             }
-            dockShell.addView(item, LinearLayout.LayoutParams(0, dp(45), 1f))
+            dockShell.addView(item, LinearLayout.LayoutParams(0, dp(49), 1f))
         }
-        dock.addView(dockShell, LinearLayout.LayoutParams(-1, -2))
+        val dockWidth = minOf(resources.displayMetrics.widthPixels - dp(28), dp(430))
+        dock.addView(dockShell, LinearLayout.LayoutParams(dockWidth, -2))
 
         val brand = row().apply { setPadding(dp(1), dp(5), dp(1), dp(14)) }
         brand.addView(ImageView(this).apply { setImageResource(R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(34), dp(34)))
@@ -149,7 +156,7 @@ class MainActivity : Activity() {
             "Visto. Lido." to "Concluído.", "Seu espaço." to "Suas regras."
         )[tab]
         heading.addView(text(parts.first + " ", 27, true))
-        heading.addView(text(parts.second, 27, true).apply { setBackgroundColor(honey); setPadding(dp(4), 0, dp(4), 0) })
+        heading.addView(text(parts.second, 27, true).apply { setBackgroundColor(accent); setPadding(dp(4), 0, dp(4), 0) })
         column.addView(heading)
         column.addSpace(this, 10)
         val subtitle = listOf(
@@ -159,7 +166,7 @@ class MainActivity : Activity() {
         column.addView(text(subtitle, 14, color = subtle))
         column.addSpace(this, 12)
         if (tab != 3) {
-            column.addView(action("+ Salvar link", honey) { linkEditor() }, LinearLayout.LayoutParams(-1, dp(46)))
+            column.addView(action("+ Salvar link", accent) { linkEditor() }, LinearLayout.LayoutParams(-1, dp(46)))
             column.addSpace(this, 16)
         }
         if (tab == 3) { settings(); return }
@@ -172,7 +179,7 @@ class MainActivity : Activity() {
                 folderId = library.folders.find { it.id == folderId }?.parent; show()
             })
             library.folders.filter { it.parent == folderId }.forEach { f ->
-                folderBar.addView(action("▱  " + f.name, honey) { folderId = f.id; show() }.apply {
+                folderBar.addView(action("▱  " + f.name, accent) { folderId = f.id; show() }.apply {
                     setOnLongClickListener { folderEditor(f); true }
                 })
             }
@@ -180,7 +187,7 @@ class MainActivity : Activity() {
             column.addView(HorizontalScrollView(this).apply { addView(folderBar) })
             if (library.folders.isEmpty()) {
                 val emptyFolders = emptyPanel("Sua primeira pasta está esperando", "Crie um lugar para suas próximas descobertas.")
-                emptyFolders.addView(action("Nova pasta", honey) { folderEditor() })
+                emptyFolders.addView(action("Nova pasta", accent) { folderEditor() })
                 column.addView(emptyFolders, LinearLayout.LayoutParams(-1, -2))
             }
             val statuses = row()
@@ -209,7 +216,7 @@ class MainActivity : Activity() {
         column.addView(searchRow)
         column.addSpace(this, 12)
         val chips = LinearLayout(this)
-        listOf("▦ Todos", "♧ Sites", "▣ Vídeos", "▧ Imagens", "♧ Jogos").forEachIndexed { i, name ->
+        listOf("▦ Todos", "↗ Sites", "▣ Vídeos", "▧ Imagens", "🎮 Jogos").forEachIndexed { i, name ->
             chips.addView(chip(name, selectedType == i) { selectedType = i; show() }.apply {
                 layoutParams = LinearLayout.LayoutParams(-2, -2).apply { rightMargin = dp(6) }
             })
@@ -237,7 +244,7 @@ class MainActivity : Activity() {
         if (items.isEmpty()) {
             val title = if (query.isNotEmpty()) "Nenhum link por aqui" else if (tab == 2) "Nada concluído ainda" else "Espaço para novas descobertas"
             val panel = emptyPanel(title, if (query.isNotEmpty()) "Tente outro termo ou ajuste os filtros." else "Salve um link e comece sua coleção.")
-            if (tab != 2) panel.addView(action("+ Salvar link", honey) { linkEditor() })
+            if (tab != 2) panel.addView(action("+ Salvar link", accent) { linkEditor() })
             column.addView(panel, LinearLayout.LayoutParams(-1, -2))
             return
         }
@@ -361,7 +368,7 @@ class MainActivity : Activity() {
         portable.addSpace(this, 9)
         portable.addView(text("Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão.", 13, color = subtle))
         portable.addSpace(this, 16)
-        portable.addView(action("Importar JSON / HTML", honey) {
+        portable.addView(action("Importar JSON / HTML", accent) {
             startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), 1)
         })
         portable.addSpace(this, 11)
