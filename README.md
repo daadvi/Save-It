@@ -20,6 +20,12 @@ O HTML funciona localmente por `file://`, inclusive sem conexão. As prévias ex
 - Em **Ajustes**, escolha a cor e importe ou exporte os favoritos pelo seletor de arquivos do Android. JSON preserva notas, hierarquia e conclusão. HTML segue o formato de favoritos dos navegadores.
 - Para trazer a coleção da versão web, importe o backup JSON previamente exportado. Os dados ficam no armazenamento privado do app. A consulta de prévias e imagens requer acesso à internet.
 
+## Importação JSON
+
+São aceitos backups do Save It! com `bookmarks` e `folders`, e backups do Savr com `bookmarks` e `collections`. As coleções Savr usam `bookmarkUrls` para associar os links. A importação mantém títulos, descrições como notas, imagens e datas. Links sem coleção ficam em “Sem pasta”. A prévia informa a quantidade de registros, links inválidos e duplicados antes de confirmar.
+
+O Save It! organiza cada marcador em uma pasta. Se um backup Savr associar o mesmo link a várias coleções, a prévia informa que será usada a primeira coleção do arquivo.
+
 ## Compilar
 
 Abra o projeto no Android Studio com o SDK 35 instalado, ou execute com JDK 17 ou 21:

@@ -1332,7 +1332,7 @@
               throw new Error("Pasta inválida no backup.");
             return {
               id: f.id,
-              name: f.name.trim().slice(0, 100),
+              name: f.name.trim(),
               parentId: f.parentId || null,
               color: /^#[a-f\d]{6}$/i.test(f.color) ? f.color : "#c9b9ff",
             };
@@ -1361,8 +1361,8 @@
                 {
                   id: uid(),
                   url,
-                  title: String(b.title || new URL(url).hostname).slice(0, 300),
-                  note: String(b.note || "").slice(0, 5000),
+                  title: String(b.title || new URL(url).hostname),
+                  note: String(b.note || ""),
                   folderId: ids.has(b.folderId) ? b.folderId : null,
                   done: b.done === true,
                   createdAt: Number(b.createdAt) || Date.now(),
@@ -1385,6 +1385,80 @@
           });
           return { folders, bookmarks, invalid };
         }
+        function parseJSONBackup(text) {
+          let input;
+          try {
+            input = JSON.parse(text.replace(/^\uFEFF/, "").trim());
+          } catch {
+            throw new Error("Não foi possível ler o JSON. O arquivo pode estar incompleto ou ter erros de sintaxe. Exporte o backup novamente no aplicativo de origem.");
+          }
+          if (input && Array.isArray(input.bookmarks) && Array.isArray(input.collections) && !Array.isArray(input.folders)) {
+            return convertSavrBackup(input);
+          }
+          if (input && Array.isArray(input.bookmarks) && Array.isArray(input.folders)) {
+            return { ...validateBackup(input), format: "Save It!", warnings: [] };
+          }
+          throw new Error("O JSON foi lido, mas o formato não foi reconhecido. São aceitos backups do Save It!, backups do Savr com bookmarks e collections e favoritos HTML de navegadores.");
+        }
+
+        function convertSavrBackup(input) {
+          if (input.bookmarks.length > 20000 || input.collections.length > 5000) {
+            throw new Error("O limite por importação é de 20.000 links e 5.000 pastas.");
+          }
+          const memberships = new Map();
+          const folders = [];
+          const warnings = [];
+          let invalidReferences = 0;
+          let multipleCollections = 0;
+          const normalizeReference = (value) => {
+            if (typeof value !== "string" || !value.trim()) return null;
+            try { return normalizeURL(value); } catch { return null; }
+          };
+          for (const collection of input.collections) {
+            if (!collection || typeof collection.name !== "string" ||
+                !collection.name.trim() || !Array.isArray(collection.bookmarkUrls)) {
+              throw new Error("Uma coleção do Savr está incompleta. Cada coleção precisa de name e bookmarkUrls. Exporte o backup novamente.");
+            }
+            const folder = { id: uid(), name: collection.name.trim(), parentId: null };
+            folders.push(folder);
+            for (const reference of new Set(collection.bookmarkUrls)) {
+              const url = normalizeReference(reference);
+              if (!url) { invalidReferences++; continue; }
+              if (memberships.has(url) && memberships.get(url) !== folder.id) {
+                multipleCollections++;
+              } else {
+                memberships.set(url, folder.id);
+              }
+            }
+          }
+          const known = new Set();
+          const bookmarks = input.bookmarks.map((bookmark) => {
+            if (!bookmark || typeof bookmark !== "object") return { url: "" };
+            const url = normalizeReference(bookmark.url);
+            if (url) known.add(url);
+            const created = typeof bookmark.createdAt === "string" && !/^\d+$/.test(bookmark.createdAt)
+              ? Date.parse(bookmark.createdAt) : Number(bookmark.createdAt);
+            return {
+              url: url || "",
+              title: bookmark.title,
+              note: typeof bookmark.description === "string" ? bookmark.description : "",
+              image: bookmark.imageUrl,
+              createdAt: Number.isFinite(created) && created > 0 ? created : Date.now(),
+              folderId: memberships.get(url) || null,
+              type: url ? detectType(url) : "site",
+              done: false,
+            };
+          });
+          const missing = [...memberships.keys()].filter((url) => !known.has(url)).length;
+          if (missing || invalidReferences) {
+            warnings.push(`${missing + invalidReferences} referências de coleção não correspondem a links válidos e serão ignoradas.`);
+          }
+          if (multipleCollections) {
+            warnings.push(`${multipleCollections} vínculos adicionais foram encontrados para links em mais de uma coleção. Cada marcador ficará na primeira coleção do arquivo.`);
+          }
+          return { ...validateBackup({ folders, bookmarks }), format: "Savr", warnings };
+        }
+
         function mergeBackup(current, imported, skipDuplicates = true) {
           const ids = new Map(imported.folders.map((f) => [f.id, uid()]));
           const folders = [
@@ -2110,17 +2184,17 @@
           try {
             if (file.size > 20 * 1024 * 1024)
               throw Error("O arquivo deve ter até 20 MB.");
-            const text = await file.text();
+            const text = (await file.text()).replace(/^\uFEFF/, "").trim();
             pendingImport =
-              /\.json$/i.test(file.name) || text.trim().startsWith("{")
-                ? validateBackup(JSON.parse(text))
+              (/\.json$/i.test(file.name) || text.startsWith("{") || text.startsWith("["))
+                ? parseJSONBackup(text)
                 : parseHTML(text);
             const duplicates = pendingImport.bookmarks.filter((b) =>
               state.bookmarks.some((x) => x.url === b.url),
             ).length;
             openModal(
               "Suas descobertas estão chegando",
-              `<p class="hint">Revise a importação de ${e(file.name)}. Seus marcadores atuais serão preservados.</p><div class="import-summary"><div><b>${pendingImport.bookmarks.length}</b><span>links válidos</span></div><div><b>${pendingImport.folders.length}</b><span>pastas</span></div></div><p class="hint">${duplicates} links já estão na coleção. ${pendingImport.invalid} links inválidos serão ignorados.</p><label class="checkbox"><input type="checkbox" id="skip-duplicates" checked>Ignorar links duplicados</label><div class="modal-actions"><button class="button" data-close>Cancelar</button><button class="button primary" id="confirm-import">Importar favoritos</button></div>`,
+              `<p class="hint">Revise a importação de ${e(file.name)}${pendingImport.format ? " · formato " + e(pendingImport.format) : ""}. Seus marcadores atuais serão preservados.</p><div class="import-summary"><div><b>${pendingImport.bookmarks.length}</b><span>links válidos</span></div><div><b>${pendingImport.folders.length}</b><span>pastas</span></div></div><p class="hint">${duplicates} links já estão na coleção. ${pendingImport.invalid} links inválidos serão ignorados.</p>${(pendingImport.warnings || []).map((warning) => `<p class="hint">${e(warning)}</p>`).join("")}<label class="checkbox"><input type="checkbox" id="skip-duplicates" checked>Ignorar links duplicados</label><div class="modal-actions"><button class="button" data-close>Cancelar</button><button class="button primary" id="confirm-import">Importar favoritos</button></div>`,
             );
             document.querySelector("#confirm-import").onclick = () => {
               const previousIds = new Set(state.bookmarks.map((b) => b.id));
