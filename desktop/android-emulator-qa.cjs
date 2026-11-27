@@ -1,46 +1,80 @@
 const assert = require("node:assert/strict");
-const { chromium } = require("/tmp/androidqa/node_modules/playwright-core");
+const { writeFileSync } = require("node:fs");
 
-(async () => {
-  const webview = await chromium.connectOverCDP("http://127.0.0.1:9224", { timeout: 20000 });
-  const chrome = await chromium.connectOverCDP("http://127.0.0.1:9223", { timeout: 20000 });
-  const apk = webview.contexts()[0].pages().find((page) => page.url().includes("Save-It.html"));
-  const html = chrome.contexts()[0].pages().find((page) => page.url().includes("Save-It.html"));
-  assert.ok(apk && html, "Open the APK and the HTML in Android Chrome first");
-  const data = await apk.evaluate(() => JSON.parse(localStorage.getItem("save-it:desktop:v1")));
-  assert.ok(data.bookmarks.some((link) => link.url === "https://example.org/migracao"));
-  await html.evaluate((state) => localStorage.setItem("save-it:desktop:v1", JSON.stringify(state)), data);
-  await html.reload();
-  async function layout(page) {
-    return page.evaluate(() => {
-      const rect = (selector) => {
-        const el = document.querySelector(selector);
-        if (!el) return null;
-        const {x, y, width, height} = el.getBoundingClientRect();
-        const { color, backgroundColor, fontSize, fontWeight, boxShadow } = getComputedStyle(el);
-        return { x,y,width,height,color,backgroundColor,fontSize,fontWeight,boxShadow };
-      };
-      return { width: innerWidth, height: innerHeight, elements: ["h1",".topbar",".toolbar",".hero",".dock"].map(rect) };
+async function connect(port) {
+  const pages = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json();
+  const target = pages.find((entry) => entry.url.includes("Save-It.html"));
+  assert.ok(target, `HTML target not available on ${port}`);
+  const socket = new WebSocket(target.webSocketDebuggerUrl);
+  await new Promise((resolve, reject) => {
+    socket.addEventListener("open", resolve, { once: true });
+    socket.addEventListener("error", reject, { once: true });
+  });
+  let id = 0;
+  const queue = new Map();
+  socket.addEventListener("message", (event) => {
+    const { id, result, error } = JSON.parse(event.data);
+    const call = queue.get(id);
+    if (!call) return;
+    queue.delete(id);
+    error ? call.reject(error) : call.resolve(result);
+  });
+  function send(method, params = {}) {
+    return new Promise((resolve, reject) => {
+      queue.set(++id, { resolve, reject });
+      socket.send(JSON.stringify({ id, method, params }));
     });
   }
-  for (const tab of ["home", "folders", "done", "settings"]) {
-    for (const page of [apk, html]) {
-      await page.locator(`[data-nav="${tab}"]`).click({ timeout: 20000 });
-      await page.screenshot({path: `/tmp/android-${page === apk ? "apk" : "chrome"}-${tab}.png`, timeout: 20000});
+  return {
+    async evaluate(expression) {
+      const { result, exceptionDetails } = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
+      assert.ok(!exceptionDetails, JSON.stringify(exceptionDetails));
+      return result.value;
+    },
+    async screenshot(path) {
+      const { data } = await send("Page.captureScreenshot");
+      writeFileSync(path, Buffer.from(data, "base64"));
+    },
+    close() { socket.close(); },
+  };
+}
+
+(async () => {
+  const apk = await connect(9224);
+  const html = await connect(9223);
+  try {
+    const data = await apk.evaluate(`JSON.parse(localStorage.getItem("save-it:desktop:v1"))`);
+    assert.ok(data.bookmarks.some((link) => link.url === "https://example.org/migracao"), "O link da versão anterior foi migrado");
+    // Give the two pages exactly the same collection before comparing any layout.
+    await html.evaluate(`localStorage.setItem("save-it:desktop:v1", ${JSON.stringify(JSON.stringify(data))}); location.reload()`);
+    let firstTab;
+    for (let i = 0; i < 15 && !firstTab; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      firstTab = await html.evaluate(`Boolean(document.querySelector("[data-nav=home]"))`);
     }
-    const a = await layout(apk);
-    const h = await layout(html);
-    assert.equal(a.width, h.width);
-    for (let i=0; i<a.elements.length; i++) {
-      const one = a.elements[i], two = h.elements[i];
-      if (!one || !two) { assert.equal(one, two); continue; }
-      if (i === 4) {
-        // Each dock is anchored to its viewport, whose height differs due to Chrome's address bar.
-        one.y -= a.height; two.y -= h.height;
+    assert.ok(firstTab, "O HTML reiniciou com os mesmos dados");
+    for (const tab of ["home", "folders", "done", "settings"]) {
+      const layouts = [];
+      for (const [name, page] of [["APK", apk], ["Chrome", html]]) {
+        const layout = await page.evaluate(`(async () => {
+          document.querySelector('[data-nav="${tab}"]').click();
+          await document.fonts.ready;
+          return { width: innerWidth, elements: ["h1", ".topbar", ".toolbar", ".hero", ".dock"].map(selector => {
+            const el = document.querySelector(selector);
+            if (!el) return null;
+            const { x, y, width, height } = el.getBoundingClientRect();
+            const { color, backgroundColor, fontSize, fontWeight, boxShadow } = getComputedStyle(el);
+            return { x, y: selector === ".dock" ? y - innerHeight : y, width, height, color, backgroundColor, fontSize, fontWeight, boxShadow };
+          }) };
+        })()`);
+        layouts.push(layout);
+        await page.screenshot(`/tmp/android-${name}-${tab}.png`);
       }
-      assert.deepEqual(one, two, `Layout mismatch in ${tab} at element ${i}`);
+      assert.deepEqual(layouts[0], layouts[1], `Layout em ${tab}`);
+      console.log(`${tab}: mesma geometria e estilos no APK e no Chrome Android`);
     }
-    console.log(`${tab}: same layout and styling`);
+  } finally {
+    apk.close();
+    html.close();
   }
-  process.exit(0);
 })().catch((error) => { console.error(error); process.exit(1); });
