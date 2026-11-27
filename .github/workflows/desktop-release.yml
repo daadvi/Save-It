@@ -22,6 +22,7 @@ jobs:
         shell: pwsh
         run: |
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
+          node --test desktop/check-import.cjs
           node desktop/check.cjs
           if ($env:GITHUB_REF_NAME -eq "ui-v1.6.0") { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
@@ -30,7 +31,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.6.1 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.7.0 ]]; then
+            git show 6c514aa11764271c35c69a74c762a269752c5f73:downloads/Save-It-1.7.0.apk > Save-It-1.7.0.apk
+            echo 'f0b6f1330e9f052f479f511e0e2efb28d34f0b7fdd1a4aa661e4fc68f23808e2  Save-It-1.7.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.7.0.apk --verify-tag --latest --title 'Save It! 1.7.0 — importação de backups Savr' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.6.1 ]]; then
             git show 462ded656da6613e24d452e13160c518d10fc5c8:downloads/Save-It-1.6.1.apk > Save-It-1.6.1.apk
             echo 'ea6b254696732991f19c035d7ad228baf787cb6b429b34d8153b9fa37cc76f8a  Save-It-1.6.1.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.6.1.apk --verify-tag --latest --title 'Save It! 1.6.1 — cabeçalho e dock inteiros' --notes-file desktop/release.md
