@@ -24,14 +24,18 @@ jobs:
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
           node --test desktop/check-import.cjs
           node desktop/check.cjs
-          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0", "ui-v1.14.1")) { node desktop/check-android.cjs }
+          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0", "ui-v1.14.1", "ui-v1.15.0")) { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.14.1 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.15.0 ]]; then
+            git show 1d46c09e4eb9f5d3d90f45c01aa72ba85ffb8c92:downloads/Save-It-1.15.0.apk > Save-It-1.15.0.apk
+            echo '1fcd5ba79c4da2a95f3b61eee571d32a2f2f0688f5e02778e5cf6b87cba5b5c7  Save-It-1.15.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.15.0.apk --verify-tag --latest --title 'Save It! 1.15.0 — descrições resumidas e detalhes do marcador' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.14.1 ]]; then
             git show 82efa5f68c09d722f263fbc8e4f45232aea72ae1:downloads/Save-It-1.14.1.apk > Save-It-1.14.1.apk
             echo '92587075bd4a05438d87b23e72d3d585eabf11a6c15b164688aaa4d281dfc795  Save-It-1.14.1.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.14.1.apk --verify-tag --latest --title 'Save It! 1.14.1 — pop-ups e navegação com movimento' --notes-file desktop/release.md
