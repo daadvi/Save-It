@@ -49,7 +49,7 @@ async function pickDocument() {
     await evaluate('document.querySelector("#theme + button").click()');
     await waitFor('document.querySelector("#choice-dialog").open');
     assert.equal(await evaluate('document.querySelector("#choice-options [aria-pressed=true]").textContent.trim()'), "Claro");
-    await evaluate('document.querySelector("#choice-options [data-choice=\"1\"]").click()');
+    await evaluate('document.querySelectorAll("#choice-options button")[1].click()');
     await waitFor('document.documentElement.classList.contains("dark")');
     assert.equal(await evaluate('document.querySelector("#choice-dialog").open'), false);
     await evaluate('if (document.querySelector("#remote").checked) document.querySelector("#remote").click()');
