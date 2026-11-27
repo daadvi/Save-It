@@ -26,6 +26,8 @@ São aceitos backups do Save It! com `bookmarks` e `folders`, e backups do Savr 
 
 Com as consultas externas ativadas, o app busca as descrições ausentes após importar JSON ou HTML, inclusive quando o marcador já tem miniatura. Elas aparecem nos cartões e podem ser pesquisadas. Para consultar novamente os links já salvos, use **Configurações → Atualizar prévias**.
 
+Se a importação completa do JSON falhar, o Save It! procura endereços HTTP e HTTPS e apresenta a prévia **Somente links**. Ao confirmar, cada endereço recuperado vira um marcador pendente no Mural, em **Sem pasta**. Depois, você pode distribuir esses marcadores entre suas pastas.
+
 O Save It! organiza cada marcador em uma pasta. Se um backup Savr associar o mesmo link a várias coleções, a prévia informa que será usada a primeira coleção do arquivo.
 
 ## Compilar

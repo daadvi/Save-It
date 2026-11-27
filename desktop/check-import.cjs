@@ -64,3 +64,27 @@ test("títulos e descrições longos são preservados integralmente", () => {
   assert.equal(data.bookmarks[0].title, bookmark.title);
   assert.equal(data.bookmarks[0].note, bookmark.description);
 });
+test("formato desconhecido recupera cada URL uma vez em Sem pasta, como pendente", () => {
+  const data = parse({entries: [
+    { href: "https://example.org", thumbnail_url: "https://cdn.example.org/thumb" },
+    { children: ["https://example.org/", "http://example.net/watch?v=1#part"], done: true },
+    { html: '<a href="https://example.com/?a=1&amp;b=2"><img src="https://example.com/mini"></a>' },
+    { value: "https://user:password@example.org/privado" },
+  ]});
+  assert.equal(data.linksOnly, true);
+  assert.deepEqual(data.folders, []);
+  assert.deepEqual(data.bookmarks.map(b => b.url), ["https://example.org/", "http://example.net/watch?v=1#part", "https://example.com/?a=1&b=2"]);
+  assert.ok(data.bookmarks.every(b => b.folderId === null && !b.done && !b.note && !b.image));
+});
+test("JSON truncado recupera strings escapadas e ignora imagens auxiliares", () => {
+  const damaged = String.raw`{"items":[{"url":"https:\/\/example.org\/um","imageUrl":"https://example.org/mini"},{"url":"https:\u002f\u002fexample.net/dois"}`;
+  assert.deepEqual(parse(damaged).bookmarks.map(b => b.url), ["https://example.org/um", "https://example.net/dois"]);
+});
+test("estrutura conhecida danificada recupera links sem recriar a pasta inválida", () => {
+  const data = parse({ folders: [{name:"Pasta"}], bookmarks: [{url:"https://example.org", done:true}] });
+  assert.equal(data.linksOnly, true);
+  assert.equal(data.bookmarks[0].done, false);
+  assert.deepEqual(parse({ folders: [], bookmarks: [{href:"https://example.net"}] }).bookmarks.map(x => x.url), ["https://example.net/"]);
+  assert.throws(() => parse({folders:[], bookmarks:Array(20001).fill({url:"https://example.org"})}), /limite/);
+  assert.throws(() => parse({entries:["file:///abc", "javascript:void(0)"]}), /Nenhum link HTTP/);
+});

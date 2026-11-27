@@ -82,6 +82,26 @@ async function test() {
     assert.equal(imported[0].description, "Descrição publicada");
     assert.equal(imported[1].description, "Do backup");
 
+    // Recover from Settings, cancel the preview once, then confirm and reopen the Mural.
+    await htmlPage.locator('[data-nav="settings"]').click();
+    await htmlPage.locator("#remote").uncheck();
+    const damaged = { name: "danificado.json", mimeType: "application/json", buffer: Buffer.from(
+      '{"items":["https://example.org/html","https://example.net/a","https://example.net/a","https://example.net/b"'
+    ) };
+    await htmlPage.locator("#import-file").setInputFiles(damaged);
+    await htmlPage.getByText(/formato Somente links/).waitFor();
+    await htmlPage.locator("#modal").getByRole("button", { name: "Cancelar" }).click();
+    assert.equal(await htmlPage.evaluate(() => JSON.parse(localStorage.getItem("save-it:desktop:v1")).bookmarks.length), 3);
+    await htmlPage.locator("#import-file").setInputFiles(damaged);
+    await htmlPage.locator("#confirm-import").click();
+    await htmlPage.locator('[data-nav="home"][aria-current="page"]').waitFor();
+    assert.equal(await htmlPage.locator("article.card").count(), 5);
+    await htmlPage.reload();
+    const recovered = await htmlPage.evaluate(() => JSON.parse(localStorage.getItem("save-it:desktop:v1")).bookmarks.slice(3));
+    assert.deepEqual(recovered.map(b => [b.url, b.folderId, b.done]), [
+      ["https://example.net/a", null, false], ["https://example.net/b", null, false],
+    ]);
+
     await apkPage.evaluate(() => {
       window.androidBootstrap = {
         legacy: {

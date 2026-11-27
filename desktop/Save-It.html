@@ -1333,7 +1333,7 @@
               "JSON incompatível. Importe um backup do Save It! ou um HTML de favoritos.",
             );
           if (input.bookmarks.length > 20000 || input.folders.length > 5000)
-            throw new Error(
+            throw new RangeError(
               "O limite por importação é de 20.000 links e 5.000 pastas.",
             );
           const folders = input.folders.map((f) => {
@@ -1400,25 +1400,103 @@
           });
           return { folders, bookmarks, invalid };
         }
+        function recoverJSONLinks(input, damagedText, reason) {
+          const urls = new Set();
+          const mediaField = /^(?:image|thumbnail|thumb|icon|favicon|cover|screenshot|preview)(?:url|src)?$/i;
+          function add(candidate) {
+            let url;
+            try { url = normalizeURL(candidate); } catch { return; }
+            urls.add(url);
+            if (urls.size > 20000) throw new RangeError("O limite por importação é de 20.000 links.");
+          }
+          function scan(text) {
+            const value = text.trim();
+            if (/^https?:\/\/[^\s<>"\\]+$/i.test(value)) {
+              add(value);
+              return;
+            }
+            if (/<(?:a|img)\b/i.test(value)) {
+              for (const anchor of value.matchAll(/<a\b[^>]*>/gi)) {
+                const href = anchor[0].match(/\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+                const target = (href?.[1] || href?.[2] || href?.[3] || "").trim();
+                if (/^https?:\/\//i.test(target)) add(target.replace(/&amp;/gi, "&"));
+              }
+              return;
+            }
+            for (const match of value.matchAll(/https?:\/\/[^\s<>"'\\]+/gi)) {
+              // Quotation marks delimit HTML attributes. Keep punctuation inside quoted URLs.
+              let url = match[0];
+              if (!/["']/.test(value[match.index - 1] || " ")) {
+                url = url.replace(/[.,;!:]+$/, "");
+                if (url.endsWith(")") && !url.includes("(")) url = url.slice(0, -1);
+              }
+              add(url.replace(/&amp;/gi, "&"));
+            }
+          }
+          if (damagedText !== null) {
+            // Even without a complete JSON tree, complete string tokens retain JSON escaping.
+            const tokens = /"(?:[^"\\]|\\[\s\S])*(?:"|$)|https?:\/\/[^\s"'<>\\]+/gi;
+            let skipValue = false;
+            for (const match of damagedText.matchAll(tokens)) {
+              const token = match[0];
+              let value = token;
+              if (token.startsWith('"')) {
+                try { value = JSON.parse(token); }
+                catch { value = token.slice(1).replace(/\\\//g, "/"); }
+              }
+              if (!skipValue) scan(token.startsWith('"') ? value : value.replace(/[},\]]+$/, ""));
+              let next = match.index + token.length;
+              while (next < damagedText.length && /\s/.test(damagedText[next])) next++;
+              skipValue = damagedText[next] === ":" && mediaField.test(value.replace(/[_-]/g, ""));
+            }
+          } else {
+            const pending = [input];
+            while (pending.length) {
+              const item = pending.pop();
+              if (typeof item === "string") scan(item);
+              else if (item && typeof item === "object") {
+                for (const key of Object.keys(item).reverse()) {
+                  if (mediaField.test(key.replace(/[_-]/g, ""))) continue;
+                  if (/^https?:\/\//i.test(key)) scan(key);
+                  pending.push(item[key]);
+                }
+              }
+            }
+          }
+          if (!urls.size) throw new Error(reason + " Nenhum link HTTP ou HTTPS foi encontrado para recuperar.");
+          const bookmarks = Array.from(urls, url => ({ url, type: detectType(url) }));
+          return {
+            ...validateBackup({ folders: [], bookmarks }),
+            format: "Somente links",
+            linksOnly: true,
+            warnings: ["Cada endereço recuperado será salvo como um marcador pendente no Mural, em Sem pasta. Você poderá organizá-los depois."],
+          };
+        }
         function parseJSONBackup(text) {
           let input;
           try {
             input = JSON.parse(text.replace(/^\uFEFF/, "").trim());
           } catch {
-            throw new Error("Não foi possível ler o JSON. O arquivo pode estar incompleto ou ter erros de sintaxe. Exporte o backup novamente no aplicativo de origem.");
+            return recoverJSONLinks(null, text, "O JSON tem erros de sintaxe.");
           }
-          if (input && Array.isArray(input.bookmarks) && Array.isArray(input.collections) && !Array.isArray(input.folders)) {
-            return convertSavrBackup(input);
+          let result;
+          try {
+            if (Array.isArray(input?.bookmarks) && Array.isArray(input.collections) && !Array.isArray(input.folders)) {
+              result = convertSavrBackup(input);
+            } else if (Array.isArray(input?.bookmarks) && Array.isArray(input.folders)) {
+              result = { ...validateBackup(input), format: "Save It!", warnings: [] };
+            }
+          } catch (error) {
+            if (error instanceof RangeError) throw error;
+            return recoverJSONLinks(input, null, "A estrutura do backup está incompleta.");
           }
-          if (input && Array.isArray(input.bookmarks) && Array.isArray(input.folders)) {
-            return { ...validateBackup(input), format: "Save It!", warnings: [] };
-          }
-          throw new Error("O JSON foi lido, mas o formato não foi reconhecido. São aceitos backups do Save It!, backups do Savr com bookmarks e collections e favoritos HTML de navegadores.");
+          if (result && (result.bookmarks.length || !result.invalid)) return result;
+          return recoverJSONLinks(input, null, "O formato não foi reconhecido para a importação completa.");
         }
 
         function convertSavrBackup(input) {
           if (input.bookmarks.length > 20000 || input.collections.length > 5000) {
-            throw new Error("O limite por importação é de 20.000 links e 5.000 pastas.");
+            throw new RangeError("O limite por importação é de 20.000 links e 5.000 pastas.");
           }
           const memberships = new Map();
           const folders = [];
@@ -2221,8 +2299,9 @@
               (/\.json$/i.test(file.name) || text.startsWith("{") || text.startsWith("["))
                 ? parseJSONBackup(text)
                 : parseHTML(text);
+            const existingUrls = new Set(state.bookmarks.map((b) => b.url));
             const duplicates = pendingImport.bookmarks.filter((b) =>
-              state.bookmarks.some((x) => x.url === b.url),
+              existingUrls.has(b.url),
             ).length;
             openModal(
               "Suas descobertas estão chegando",
@@ -2239,7 +2318,8 @@
               state.bookmarks = merged.bookmarks;
               save();
               closeModal();
-              render();
+              if (pendingImport.linksOnly) go("home");
+              else render();
               const added = state.bookmarks.filter(
                 (b) => !previousIds.has(b.id),
               );
