@@ -39,7 +39,11 @@ async function test() {
       const selector = `[data-nav="${tab}"]`;
       for (const page of [htmlPage, apkPage]) {
         await page.locator(selector).click();
-        await page.evaluate(async () => { await document.fonts.ready; await Promise.all(document.getAnimations().map(animation => animation.finished)); });
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          const entrances = document.getAnimations().filter(animation => Number.isFinite(animation.effect.getComputedTiming().endTime));
+          await Promise.all(entrances.map(animation => animation.finished));
+        });
       }
       const layout = (page) => page.evaluate(() =>
         [...document.querySelectorAll(".topbar, main, main *, .dock, .dock *")].map((node) => {

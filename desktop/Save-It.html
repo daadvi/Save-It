@@ -206,11 +206,20 @@
         letter-spacing: -2.2px;
         margin: 12px 0;
       }
-      h1 span {
+      .highlight {
+        position: relative;
         display: inline-block;
-        background: var(--accent);
         padding: 0 9px 3px;
         transform: rotate(-2deg);
+      }
+      .highlight-ink {
+        position: absolute;
+        inset: 0;
+        padding: inherit;
+        color: #202020;
+        background: var(--accent);
+        animation: marker-swipe 560ms cubic-bezier(.22, .61, .36, 1) 100ms both;
+        pointer-events: none;
       }
       .hero {
         display: flex;
@@ -327,7 +336,11 @@
         align-items: center;
         gap: 16px;
         background: #ebe8f7;
-        border: 1px dashed #8e81ad;
+        position: relative;
+        border: 1px solid transparent;
+        --dash-color: #8e81ad;
+        --dash-width: 1px;
+        --dash-radius: 4px;
         border-radius: 5px;
         padding: 10px 14px;
         margin-bottom: 23px;
@@ -690,11 +703,35 @@
         color: var(--muted);
       }
       .empty {
-        border: 2px dashed #a4a497;
+        position: relative;
+        border: 2px solid transparent;
+        --dash-color: #a4a497;
+        --dash-width: 2px;
+        --dash-radius: 7px;
         text-align: center;
         padding: 65px 20px;
         border-radius: 8px;
         margin-top: 20px;
+      }
+      .dashed-outline {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
+      }
+      .dashed-outline rect {
+        rx: var(--dash-radius);
+        fill: none;
+        stroke: var(--dash-color);
+        stroke-width: var(--dash-width);
+        stroke-dasharray: 5 7;
+        animation: follow-border 6s linear infinite;
+      }
+      @keyframes follow-border {
+        to { stroke-dashoffset: -12; }
       }
       .empty .empty-icon {
         font-size: 45px;
@@ -919,9 +956,6 @@
       }
       .dark .brand-bang {
         color: var(--accent);
-      }
-      .dark h1 span {
-        color: #202020;
       }
       .dark .button:hover {
         box-shadow: 5px 5px 0 var(--ink);
@@ -1155,8 +1189,13 @@
         to { opacity: 1; }
       }
       @keyframes modal-enter {
-        from { opacity: 0; transform: translateY(10px) scale(.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
+        from { opacity: .35; transform: translateY(clamp(48px, 12dvh, 120px)); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes marker-swipe {
+        from { clip-path: polygon(0 0, 0 0, 0 100%, 0 100%); }
+        65%  { clip-path: polygon(0 0, 78% 0, 70% 100%, 0 100%); }
+        to   { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
       }
       .hero, .folder-card, #results {
         animation: arrive 220ms cubic-bezier(.16, 1, .3, 1) both;
@@ -1177,7 +1216,7 @@
         animation: appear 160ms ease-out;
       }
       dialog[open] {
-        animation: modal-enter 220ms cubic-bezier(.16, 1, .3, 1) both;
+        animation: modal-enter 330ms cubic-bezier(.18, .85, .3, 1) both;
       }
       dialog[open]::backdrop {
         animation: appear 180ms ease-out;
@@ -1225,7 +1264,7 @@
       #choice-dialog[open] {
         display: flex;
         flex-direction: column;
-        animation-duration: 180ms;
+        animation-duration: 300ms;
       }
       #choice-dialog .modal-head {
         flex-shrink: 0;
@@ -2019,6 +2058,10 @@
               .join("")
           );
         }
+        const dashedOutline = '<svg class="dashed-outline" aria-hidden="true" focusable="false"><rect width="100%" height="100%"/></svg>';
+        function highlight(text) {
+          return `<span class="highlight">${e(text)}<span class="highlight-ink" aria-hidden="true">${e(text)}</span></span>`;
+        }
         function hero(eyebrow, title, description, actions) {
           return `<section class="hero"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${description}</p></div><div class="hero-actions">${actions}</div></section>`;
         }
@@ -2122,7 +2165,7 @@
             `<div class="section-label">${view === "done" ? "JÁ VI, JÁ CURTI" : "SUAS DESCOBERTAS"} <span>${list.length} ${list.length === 1 ? "marcador" : "marcadores"}</span></div>` +
             (list.length
               ? `<div class="masonry">${list.map(card).join("")}</div>`
-              : `<div class="empty"><div class="empty-icon">${query ? "⌕" : "✳"}</div><h2>${query ? "Nenhum link por aqui" : "Espaço para novas descobertas"}</h2><p>${query ? "Tente outro termo ou ajuste os filtros." : view === "done" ? "Seus links concluídos aparecerão aqui, nas mesmas pastas." : "Salve um link e comece a construir seu canto da internet."}</p>${view === "done" ? "" : `<button class="button primary" data-add>${icon("plus")}Salvar um link</button>`}</div>`);
+              : `<div class="empty">${dashedOutline}<div class="empty-icon">${query ? "⌕" : "✳"}</div><h2>${query ? "Nenhum link por aqui" : "Espaço para novas descobertas"}</h2><p>${query ? "Tente outro termo ou ajuste os filtros." : view === "done" ? "Seus links concluídos aparecerão aqui, nas mesmas pastas." : "Salve um link e comece a construir seu canto da internet."}</p>${view === "done" ? "" : `<button class="button primary" data-add>${icon("plus")}Salvar um link</button>`}</div>`);
           wrap.querySelectorAll(".cover img").forEach((img) => {
             img.onerror = () => {
               const fallback = document.createElement("div");
@@ -2168,8 +2211,8 @@
             hero(
               done ? "CONCLUÍDOS" : "BIBLIOTECA LOCAL",
               done
-                ? "Marcadores <span>concluídos.</span>"
-                : "Meu <span>mural.</span>",
+                ? `Marcadores ${highlight("concluídos.")}`
+                : `Meu ${highlight("mural.")}`,
               done
                 ? "Suas descobertas já exploradas, sempre à mão."
                 : "Seus links pendentes de todas as pastas.",
@@ -2178,7 +2221,7 @@
             `<div class="stats" style="margin-top:-16px;margin-bottom:26px"><span><b>${state.bookmarks.filter((b) => b.done === done).length}</b> ${done ? "concluídos" : "links salvos"}</span><i></i><span><b>${state.folders.length}</b> pastas</span></div>` +
             tools() +
             (!done && state.bookmarks.some((b) => b.demo)
-              ? `<div class="demo-banner"><span>✳ Uma dose de inspiração para começar. Estes links são exemplos.</span><button class="text-btn" id="clear-demo">Começar do zero</button></div>`
+              ? `<div class="demo-banner">${dashedOutline}<span>✳ Uma dose de inspiração para começar. Estes links são exemplos.</span><button class="text-btn" id="clear-demo">Começar do zero</button></div>`
               : "") +
             '<section id="results" aria-label="Marcadores"></section>';
           enhanceSelects(main);
@@ -2192,7 +2235,7 @@
           main.innerHTML =
             hero(
               "CADA IDEIA NO SEU LUGAR",
-              current ? e(current.name) : "Um universo de <span>pastas.</span>",
+              current ? e(current.name) : `Um universo de ${highlight("pastas.")}`,
               "Organize suas descobertas. Do seu jeito.",
               `<button class="button small" data-new-folder>${icon("plus")}${folder ? "Nova subpasta" : "Nova pasta"}</button><button class="button primary" data-add>${icon("plus")}Salvar link</button>`,
             ) +
@@ -2214,7 +2257,7 @@
               })
               .join("")}</section>` +
             (!children.length && !folder
-              ? `<div class="empty"><h2>Sua primeira pasta está esperando</h2><p>Crie um lugar para suas próximas descobertas.</p><button class="button primary" data-new-folder>Nova pasta</button></div>`
+              ? `<div class="empty">${dashedOutline}<h2>Sua primeira pasta está esperando</h2><p>Crie um lugar para suas próximas descobertas.</p><button class="button primary" data-new-folder>Nova pasta</button></div>`
               : "") +
             `<div class="chips">${[
               ["pending", "Pendentes"],
@@ -2235,7 +2278,7 @@
           main.innerHTML =
             hero(
               "DEIXE COM A SUA CARA",
-              "Seu espaço. <span>Suas regras.</span>",
+              `Seu espaço. ${highlight("Suas regras.")}`,
               "Pequenos ajustes para uma coleção que é sua.",
               "",
             ) +
