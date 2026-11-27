@@ -1,0 +1,30 @@
+name: Conferir HTML no Android
+on:
+  push:
+    branches: [qa/android-html]
+permissions:
+  contents: read
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          npm install --prefix /tmp/androidqa playwright-core@1.55.0
+          printf 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"\n' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          curl -fsSL https://github.com/daadvi/Save-It/releases/download/ui-v1.6.0/Save-It-1.6.0.apk -o /tmp/save-it.apk
+          curl -fsSL https://github.com/daadvi/Save-It/releases/download/ui-v1.5.0/Save-It-1.5.0.apk -o /tmp/save-it-old.apk
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: bash desktop/android-emulator-qa.sh
