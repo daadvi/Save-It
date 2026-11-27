@@ -6,6 +6,9 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.view.WindowInsets
+import android.os.Build
+import android.widget.FrameLayout
 import android.view.ViewGroup
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -42,20 +45,22 @@ class MainActivity : Activity() {
             settings.textZoom = 100
             webViewClient = pageClient()
             webChromeClient = fileClient()
-            setOnApplyWindowInsetsListener { view, insets ->
-                @Suppress("DEPRECATION")
-                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
-                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
-                @Suppress("DEPRECATION")
-                insets.consumeSystemWindowInsets()
+        }
+        // Insets belong to the container. WebView padding does not resize the CSS viewport.
+        val viewport = FrameLayout(this).apply {
+            setBackgroundColor(Color.rgb(247, 247, 242))
+            setOnApplyWindowInsetsListener { container, insets ->
+                applySafeArea(container, insets)
+                insets
             }
+            addView(web, FrameLayout.LayoutParams(-1, -1))
         }
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
             View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        setContentView(web)
-        web.requestApplyInsets()
+        setContentView(viewport)
+        viewport.requestApplyInsets()
         if (state == null) receiveShare(intent)
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
             WebViewCompat.addWebMessageListener(web, "SaveItAndroid", setOf(ORIGIN)) { _, message, _, mainFrame, reply ->
@@ -75,6 +80,31 @@ class MainActivity : Activity() {
             }
         }
         web.loadUrl(APP_URL)
+    }
+
+    internal fun applySafeArea(container: View, insets: WindowInsets) {
+        val safe = safeInsets(insets)
+        container.setPadding(safe[0], safe[1], safe[2], safe[3])
+    }
+
+    internal fun safeInsets(insets: WindowInsets): IntArray {
+        if (Build.VERSION.SDK_INT >= 30) {
+            val safe = insets.getInsets(WindowInsets.Type.systemBars() or
+                WindowInsets.Type.displayCutout() or WindowInsets.Type.ime())
+            return intArrayOf(safe.left, safe.top, safe.right, safe.bottom)
+        }
+        @Suppress("DEPRECATION")
+        val safe = intArrayOf(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+            insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+        if (Build.VERSION.SDK_INT >= 28) {
+            insets.displayCutout?.let { cutout ->
+                safe[0] = maxOf(safe[0], cutout.safeInsetLeft)
+                safe[1] = maxOf(safe[1], cutout.safeInsetTop)
+                safe[2] = maxOf(safe[2], cutout.safeInsetRight)
+                safe[3] = maxOf(safe[3], cutout.safeInsetBottom)
+            }
+        }
+        return safe
     }
 
     override fun onNewIntent(intent: Intent) {
