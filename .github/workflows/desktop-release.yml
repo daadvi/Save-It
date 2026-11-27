@@ -2,7 +2,7 @@ name: Publicar HTML e APK
 on:
   workflow_dispatch:
   push:
-    tags: ['desktop-v*', 'logo-v*']
+    tags: ['desktop-v*', 'logo-v*', 'ui-v*']
 permissions:
   contents: write
 jobs:
@@ -29,7 +29,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == logo-v* || "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v* ]]; then
+            git show ea5629dcd0d34965c8d4b6bc5e55822c52a4aea6:downloads/Save-It-1.3.0.apk > Save-It-1.3.0.apk
+            echo 'fa17c41d678c29a2ad19931dcbf7da44155d2a458b7b0be07f3910ceca38d351  Save-It-1.3.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.3.0.apk --verify-tag --latest --title 'Save It! 1.3.0 — interface Android renovada' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == logo-v* || "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
             git show db4608c6ed6ca9ee7a9e55249364e4a89c0d34f1:downloads/Save-It-1.2.0.apk > Save-It-1.2.0.apk
             echo '618a70cb8ef3a487036eb1dd12b640ef5c17e8db116d09207379e5514838b613  Save-It-1.2.0.apk' | sha256sum -c -
             gh release upload logo-v1.2.0 desktop/Save-It.html Save-It-1.2.0.apk --clobber
