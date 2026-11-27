@@ -29,7 +29,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.4.0 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.5.0 ]]; then
+            git show 15870dbebd965a085404539bc6c075a58b0bb529:downloads/Save-It-1.5.0.apk > Save-It-1.5.0.apk
+            echo 'c913dc35e1f26ca10f5ae8596f2456b000f1a60f5c3e7e2e774f0a26065a9813  Save-It-1.5.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.5.0.apk --verify-tag --latest --title 'Save It! 1.5.0 — cores e dock corrigidas' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.4.0 ]]; then
             git show 5118e17fad171420210e12d7efdc59a980a4debb:downloads/Save-It-1.4.0.apk > Save-It-1.4.0.apk
             echo '5e8ef0c7a5b76db25469b16fd99201ec01a68d4c0e020d2df7f4b36690af4788  Save-It-1.4.0.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.4.0.apk --verify-tag --latest --title 'Save It! 1.4.0 — Android com visual do computador' --notes-file desktop/release.md
