@@ -1,3 +1,3 @@
-Em **Configurações → Importar só os links**, escolha o JSON e confira a quantidade na prévia. O Save It! lê o arquivo linha por linha, valida os endereços HTTP e HTTPS e salva cada link novo no Mural, em **Sem pasta**. Para manter também as coleções de um backup Savr, use **Importar JSON / HTML**.
+Movimento curto ao trocar de aba, abrir pastas e cartões, mostrar confirmações e abrir janelas. Botões da dock e filtros respondem ao toque. O aplicativo respeita a preferência do sistema por movimento reduzido.
 
-Baixe **Save-It-1.10.0.apk** para Android ou **Save-It.html** para o navegador.
+Baixe **Save-It-1.11.0.apk** para Android ou **Save-It.html** para o computador.

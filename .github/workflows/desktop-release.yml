@@ -31,7 +31,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.10.0 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.11.0 ]]; then
+            git show 97b209c9d77660b9d8c9792c6db831d82a79d24e:downloads/Save-It-1.11.0.apk > Save-It-1.11.0.apk
+            echo '712925daca37976058356ba09cec7c4328c78c1cf67cc7f4d7e37d23f604129c  Save-It-1.11.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.11.0.apk --verify-tag --latest --title 'Save It! 1.11.0 — movimento na interface' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.10.0 ]]; then
             git show b6700c7efde3096388fcaf45af76bcd875a0a6a0:downloads/Save-It-1.10.0.apk > Save-It-1.10.0.apk
             echo '94487fe4159d3e6d53a4d0b741017371a6f0c9e82d796655ddbef698da1cc790  Save-It-1.10.0.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.10.0.apk --verify-tag --latest --title 'Save It! 1.10.0 — importação linha por linha' --notes-file desktop/release.md
