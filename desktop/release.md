@@ -1,5 +1,5 @@
-Os seletores de pasta, ordenação, tema e tamanho dos cards têm bordas marcadas e sombras sólidas. A opção atual aparece com a cor de destaque. No celular, as opções abrem na parte inferior da tela. No computador, é possível percorrê-las com as setas e fechar com Esc.
+Os traços dos quadros vazios e do aviso de links de exemplo se movem devagar ao redor da borda. Os pop-ups sobem ao abrir, e os destaques dos títulos aparecem da esquerda para a direita, como uma passada de marca-texto.
 
-Os painéis e as confirmações têm animações curtas e respeitam a preferência por movimento reduzido.
+Com movimento reduzido, a interface exibe os traços e os destaques estáticos.
 
-Baixe **Save-It-1.12.0.apk** para Android ou **Save-It.html** para o computador.
+Baixe **Save-It-1.13.0.apk** para Android ou **Save-It.html** para o computador.
