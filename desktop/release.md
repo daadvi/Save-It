@@ -1,8 +1,7 @@
-Escolha o arquivo em **Assets**:
+Baixe **Save-It-1.8.0.apk** para atualizar o Android ou **Save-It.html** para abrir a biblioteca no computador.
 
-- **Save-It.html** para o computador. Salve o arquivo em uma pasta permanente e abra-o com dois cliques. No Windows, use **Criar atalho** para colocar o ícone do Save It! na Área de Trabalho.
-- **Save-It-1.7.0.apk** para Android 8.0 ou superior. Usa o mesmo HTML do computador, com o layout adaptado à tela. O APK migra automaticamente os marcadores e preferências da versão anterior e continua recebendo links pelo menu Compartilhar.
+- A dock fica um pouco mais perto da borda inferior do Android e respeita a área dos botões e gestos do sistema.
+- Ao importar um JSON ou HTML com as consultas externas ativadas, o Save It! busca as descrições que faltam e as exibe nos cartões. As notas pessoais e as miniaturas importadas são preservadas.
+- Use **Compartilhar → Save It!** para guardar o link de um vídeo no mural. Reels do Instagram aparecem no filtro **Vídeos**. Compartilhar o mesmo endereço novamente mantém um único marcador.
 
-A coleção do computador funciona no navegador pelo endereço local do arquivo. Consultar novas miniaturas requer internet. Para levar links de um dispositivo ao outro, exporte e importe um backup JSON.
-
-Aceita backups JSON do Savr, preservando coleções, títulos, descrições, imagens e datas. Links sem coleção ficam em “Sem pasta”. A prévia distingue arquivos malformados de formatos desconhecidos.
+Para buscar descrições de links que já estão na biblioteca, use **Configurações → Atualizar prévias**.

@@ -24,6 +24,8 @@ O HTML funciona localmente por `file://`, inclusive sem conexão. As prévias ex
 
 São aceitos backups do Save It! com `bookmarks` e `folders`, e backups do Savr com `bookmarks` e `collections`. As coleções Savr usam `bookmarkUrls` para associar os links. A importação mantém títulos, descrições como notas, imagens e datas. Links sem coleção ficam em “Sem pasta”. A prévia informa a quantidade de registros, links inválidos e duplicados antes de confirmar.
 
+Com as consultas externas ativadas, o app busca as descrições ausentes após importar JSON ou HTML, inclusive quando o marcador já tem miniatura. Elas aparecem nos cartões e podem ser pesquisadas. Para consultar novamente os links já salvos, use **Configurações → Atualizar prévias**.
+
 O Save It! organiza cada marcador em uma pasta. Se um backup Savr associar o mesmo link a várias coleções, a prévia informa que será usada a primeira coleção do arquivo.
 
 ## Compilar
