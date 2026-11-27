@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.os.Bundle
 import android.view.View
 import android.view.WindowInsets
@@ -22,12 +23,15 @@ import androidx.webkit.WebViewFeature
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("collection", MODE_PRIVATE) }
     private lateinit var web: WebView
     private var pageReady = false
     private var chooser: ValueCallback<Array<Uri>>? = null
+    private val selectedDocument = AtomicReference<Pair<String, Uri>?>(null)
     private var exporting = false
     private val pendingExport by lazy { File(cacheDir, "pending-backup") }
 
@@ -164,9 +168,12 @@ class MainActivity : Activity() {
 
     private fun pageClient() = object : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (request.url.toString().startsWith("$ORIGIN/import/")) {
+                return openSelectedDocument(request)
+            }
             if (request.url.toString() != APP_URL) return null
             return WebResourceResponse("text/html", "UTF-8", 200, "OK",
-                mapOf("Content-Security-Policy" to "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https:; connect-src https://api.microlink.io; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"),
+                mapOf("Content-Security-Policy" to "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https:; connect-src 'self' https://api.microlink.io; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"),
                 assets.open("Save-It.html"))
         }
 
@@ -176,6 +183,27 @@ class MainActivity : Activity() {
             if (request.isForMainFrame && request.hasGesture()) openLink(url)
             return true
         }
+    }
+
+    // Called on WebView's request thread. Only the document chosen in the system picker is served.
+    private fun openSelectedDocument(request: WebResourceRequest): WebResourceResponse {
+        val document = selectedDocument.get()
+        if (request.method == "GET" && document != null &&
+            request.url.toString() == "$ORIGIN/import/${document.first}" &&
+            selectedDocument.compareAndSet(document, null)) {
+            val uri = document.second
+            val name = runCatching {
+                contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                    if (it.moveToFirst()) it.getString(0) else null
+                }
+            }.getOrNull() ?: "backup"
+            val stream = runCatching { contentResolver.openInputStream(uri) }.getOrNull()
+            if (stream != null) {
+                return WebResourceResponse("application/octet-stream", null, 200, "OK",
+                    mapOf("Cache-Control" to "no-store", "X-Document-Name" to Uri.encode(name)), stream)
+            }
+        }
+        return WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", emptyMap(), null)
     }
 
     private fun openLink(url: Uri) {
@@ -228,8 +256,15 @@ class MainActivity : Activity() {
         val uri = data?.data?.takeIf { result == RESULT_OK }
         when (request) {
             IMPORT_REQUEST -> {
-                chooser?.onReceiveValue(uri?.let { arrayOf(it) })
+                chooser?.onReceiveValue(null)
                 chooser = null
+                if (uri?.scheme == "content") {
+                    val token = UUID.randomUUID().toString()
+                    selectedDocument.set(token to uri)
+                    web.evaluateJavascript("window.dispatchEvent(new CustomEvent('save-it-document', {detail:'$token'}))", null)
+                } else if (uri != null) {
+                    toast("Escolha o arquivo pelo seletor de documentos do Android.")
+                }
             }
             EXPORT_REQUEST -> {
                 exporting = false

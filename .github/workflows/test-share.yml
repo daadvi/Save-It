@@ -1,7 +1,7 @@
-name: Conferir compartilhamento no APK
+name: Conferir compartilhamento e importação no APK
 on:
   push:
-    branches: ['distribuicao/ui-v1.8.2']
+    branches: ['distribuicao/ui-v1.10.0']
 permissions:
   contents: read
 jobs:
@@ -32,5 +32,6 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.${{ matrix.navigation }}
-            adb install downloads/Save-It-1.8.2.apk
+            adb install downloads/Save-It-1.10.0.apk
             node desktop/check-shared-video.cjs
+            node desktop/check-document.cjs

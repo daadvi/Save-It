@@ -11,7 +11,7 @@ const end = script.indexOf("function parseHTML");
 assert.ok(end > start);
 const core = script.slice(start, end);
 const detection = script.slice(script.indexOf("function detectType"), script.indexOf("function initialImage"));
-vm.runInContext(core + detection + "\nglobalThis.parse = parseJSONBackup; globalThis.merge = mergeBackup;", context);
+vm.runInContext(core + detection + "\nglobalThis.scanLines = text => recoverJSONLinks(null, text, ''); globalThis.parse = parseJSONBackup; globalThis.merge = mergeBackup;", context);
 const parse = (value) => JSON.parse(JSON.stringify(context.parse(typeof value === "string" ? value : JSON.stringify(value))));
 const sample = {
   bookmarks: [
@@ -87,4 +87,21 @@ test("estrutura conhecida danificada recupera links sem recriar a pasta inválid
   assert.deepEqual(parse({ folders: [], bookmarks: [{href:"https://example.net"}] }).bookmarks.map(x => x.url), ["https://example.net/"]);
   assert.throws(() => parse({folders:[], bookmarks:Array(20001).fill({url:"https://example.org"})}), /limite/);
   assert.throws(() => parse({entries:["file:///abc", "javascript:void(0)"]}), /Nenhum link HTTP/);
+});
+
+test("leitura linha por linha distingue páginas de miniaturas, texto auxiliar e domínios inválidos", () => {
+  const backup = {
+    bookmarks: [
+      {url: "https://example.org/watch?v=1#x", imageUrl: "https://example.org/capa", description: "https://example.com/nota"},
+      {url: "http://example.net/pagina", preview: {image: {url: "https://example.org/banner"}}},
+      {url: "https://-invalido.example/"},
+    ],
+    collections: [{bookmarkUrls: ["http://example.net/pagina"]}],
+  };
+  for (const text of [JSON.stringify(backup), JSON.stringify(backup, null, 2)]) {
+    const data = context.scanLines(text);
+    assert.deepEqual(Array.from(data.bookmarks, b => b.url), ["https://example.org/watch?v=1#x", "http://example.net/pagina"]);
+  }
+  const damaged = '"título interrompido\r\n"url":"https://example.org/a"\n"url":"HTTP://example.net/b"';
+  assert.deepEqual(Array.from(context.scanLines(damaged).bookmarks, b => b.url), ["https://example.org/a", "http://example.net/b"]);
 });

@@ -1406,6 +1406,8 @@
           function add(candidate) {
             let url;
             try { url = normalizeURL(candidate); } catch { return; }
+            const host = new URL(url).hostname.replace(/\.$/, "");
+            if (!host.split(".").every(label => /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(label))) return;
             urls.add(url);
             if (urls.size > 20000) throw new RangeError("O limite por importação é de 20.000 links.");
           }
@@ -1434,20 +1436,35 @@
             }
           }
           if (damagedText !== null) {
-            // Even without a complete JSON tree, complete string tokens retain JSON escaping.
-            const tokens = /"(?:[^"\\]|\\[\s\S])*(?:"|$)|https?:\/\/[^\s"'<>\\]+/gi;
-            let skipValue = false;
-            for (const match of damagedText.matchAll(tokens)) {
-              const token = match[0];
-              let value = token;
-              if (token.startsWith('"')) {
-                try { value = JSON.parse(token); }
-                catch { value = token.slice(1).replace(/\\\//g, "/"); }
+            const ignoredField = /^(?:title|note|description|name)$/i;
+            const tokenPattern = /"(?:[^"\\]|\\.)*(?:"|$)|https?:\/\/[^\s"'<>\\]+|[{}\[\]]/gi;
+            let skipValue = false, ignoredDepth = 0;
+            for (const [line] of damagedText.matchAll(/[^\r\n]+/g)) {
+              // Restart at every line so an unterminated quote cannot swallow the next record.
+              for (const tokenMatch of line.matchAll(tokenPattern)) {
+                const token = tokenMatch[0];
+                if (token === "[" || token === "{") {
+                  if (skipValue || ignoredDepth) ignoredDepth++;
+                  skipValue = false;
+                  continue;
+                }
+                if (token === "]" || token === "}") {
+                  if (ignoredDepth) ignoredDepth--;
+                  skipValue = false;
+                  continue;
+                }
+                if (ignoredDepth) continue;
+                let value = token;
+                if (token.startsWith('"')) {
+                  try { value = JSON.parse(token); }
+                  catch { value = token.slice(1).replace(/\\\//g, "/"); }
+                }
+                let next = tokenMatch.index + token.length;
+                while (next < line.length && /\s/.test(line[next])) next++;
+                const isKey = line[next] === ":";
+                if (!skipValue && (!isKey || /^https?:\/\//i.test(value))) scan(token.startsWith('"') ? value : value.replace(/[},\]]+$/, ""));
+                skipValue = isKey && (mediaField.test(value.replace(/[_-]/g, "")) || ignoredField.test(value));
               }
-              if (!skipValue) scan(token.startsWith('"') ? value : value.replace(/[},\]]+$/, ""));
-              let next = match.index + token.length;
-              while (next < damagedText.length && /\s/.test(damagedText[next])) next++;
-              skipValue = damagedText[next] === ":" && mediaField.test(value.replace(/[_-]/g, ""));
             }
           } else {
             const pending = [input];
@@ -1784,6 +1801,7 @@
           sort = "newest",
           status = "pending",
           toastTimer,
+          linksOnlyImport = false,
           pendingImport = null,
           previewToken = 0;
         const main = document.querySelector("main"),
@@ -2068,7 +2086,7 @@
               "Pequenos ajustes para uma coleção que é sua.",
               "",
             ) +
-            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As descrições e as imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
+            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button><button class="button" data-import="links">Importar só os links</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As descrições e as imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
         }
         function openModal(title, body) {
           modalContent.innerHTML = `<div class="modal-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Fechar">${icon("close")}</button></div>${body}`;
@@ -2290,15 +2308,18 @@
               `${count} prévias consultadas. Imagens indisponíveis usam uma captura ou o domínio.`,
             );
         }
-        async function importFile(file) {
+        const importLimit = 20 * 1024 * 1024;
+        async function importFile(file, onlyLinks = linksOnlyImport) {
           try {
-            if (file.size > 20 * 1024 * 1024)
-              throw Error("O arquivo deve ter até 20 MB.");
-            const text = (await file.text()).replace(/^\uFEFF/, "").trim();
-            pendingImport =
-              (/\.json$/i.test(file.name) || text.startsWith("{") || text.startsWith("["))
-                ? parseJSONBackup(text)
-                : parseHTML(text);
+            if (file.size > importLimit) throw Error("O arquivo deve ter até 20 MB.");
+            const bytes = new Uint8Array(await file.arrayBuffer());
+            if (!bytes.length) throw Error("O arquivo está vazio. Selecione uma cópia que contenha os marcadores.");
+            const encoding = (bytes[0] === 0xff && bytes[1] === 0xfe) || bytes[1] === 0 ? "utf-16le"
+              : (bytes[0] === 0xfe && bytes[1] === 0xff) || bytes[0] === 0 ? "utf-16be" : "utf-8";
+            const text = new TextDecoder(encoding).decode(bytes).trim();
+            if (onlyLinks) pendingImport = recoverJSONLinks(null, text, "O arquivo foi lido linha por linha.");
+            else if (!text.startsWith("<") || /\.json$/i.test(file.name)) pendingImport = parseJSONBackup(text);
+            else pendingImport = parseHTML(text);
             const existingUrls = new Set(state.bookmarks.map((b) => b.url));
             const duplicates = pendingImport.bookmarks.filter((b) =>
               existingUrls.has(b.url),
@@ -2314,9 +2335,15 @@
                 pendingImport,
                 document.querySelector("#skip-duplicates").checked,
               );
+              const previousFolders = state.folders, previousBookmarks = state.bookmarks;
               state.folders = merged.folders;
               state.bookmarks = merged.bookmarks;
-              save();
+              if (!save()) {
+                state.folders = previousFolders;
+                state.bookmarks = previousBookmarks;
+                toast("Não foi possível gravar a importação no armazenamento local.");
+                return;
+              }
               closeModal();
               if (pendingImport.linksOnly) go("home");
               else render();
@@ -2338,6 +2365,31 @@
             );
           }
         }
+        window.addEventListener("save-it-document", async ({detail: token}) => {
+          if (location.origin !== "https://appassets.androidplatform.net" || !/^[a-f0-9-]{36}$/.test(token)) return;
+          const onlyLinks = linksOnlyImport;
+          try {
+            const response = await fetch("/import/" + token, { cache: "no-store" });
+            if (!response.ok) throw Error("Não foi possível abrir o arquivo selecionado no Android.");
+            const reader = response.body.getReader();
+            const chunks = [];
+            let size = 0;
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              size += value.byteLength;
+              if (size > importLimit) {
+                await reader.cancel();
+                throw Error("O arquivo deve ter até 20 MB.");
+              }
+              chunks.push(value);
+            }
+            const name = decodeURIComponent(response.headers.get("X-Document-Name") || "backup");
+            await importFile(new File(chunks, name), onlyLinks);
+          } catch (error) {
+            toast(error.message || "Falha ao ler o documento no Android.");
+          }
+        });
         document.addEventListener("click", (ev) => {
           const target = ev.target.closest("button");
           if (!target) return;
@@ -2383,9 +2435,10 @@
           } else if (
             target.hasAttribute("data-import") ||
             target.id === "import-top"
-          )
+          ) {
+            linksOnlyImport = target.dataset.import === "links";
             document.querySelector("#import-file").click();
-          else if (target.dataset.export) {
+          } else if (target.dataset.export) {
             try {
               const json = target.dataset.export === "json";
               download(
