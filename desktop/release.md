@@ -1,3 +1,3 @@
-Se um backup JSON estiver incompleto ou em formato desconhecido, o Save It! tenta recuperar seus endereços HTTP e HTTPS. A prévia **Somente links** mostra quantos foram encontrados. Ao confirmar, cada novo endereço aparece como um marcador pendente no **Mural**, em **Sem pasta**, pronto para organizar.
+Em **Configurações → Importar só os links**, escolha o JSON e confira a quantidade na prévia. O Save It! lê o arquivo linha por linha, valida os endereços HTTP e HTTPS e salva cada link novo no Mural, em **Sem pasta**. Para manter também as coleções de um backup Savr, use **Importar JSON / HTML**.
 
-Baixe **Save-It-1.9.0.apk** para Android ou **Save-It.html** para o navegador.
+Baixe **Save-It-1.10.0.apk** para Android ou **Save-It.html** para o navegador.
