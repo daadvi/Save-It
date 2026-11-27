@@ -1,7 +1,7 @@
 name: Conferir seleção e importação no APK
 on:
   push:
-    branches: ['distribuicao/ui-v1.14.0']
+    branches: ['distribuicao/ui-v1.14.1']
 permissions:
   contents: read
 jobs:
@@ -33,5 +33,5 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.${{ matrix.navigation }}
-            adb install downloads/Save-It-1.14.0.apk
+            adb install downloads/Save-It-1.14.1.apk
             node desktop/check-document.cjs

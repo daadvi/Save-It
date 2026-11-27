@@ -52,7 +52,7 @@ async function pickDocument() {
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const readY = () => new DOMMatrix(getComputedStyle(dialog).transform).m42;
       readY();
-      const slide = dialog.getAnimations().find(animation => animation.transitionProperty === "transform");
+      const slide = dialog.getAnimations().find(animation => animation.animationName === "modal-enter");
       if (!slide) return { reduced, rise: 0 };
       slide.pause();
       slide.currentTime = 0;
@@ -67,7 +67,7 @@ async function pickDocument() {
       dialog.querySelectorAll("#choice-options button")[1].click();
       const style = getComputedStyle(dialog);
       const visible = style.display !== "none";
-      const slide = dialog.getAnimations().find(animation => animation.transitionProperty === "transform");
+      const slide = dialog.getAnimations().find(animation => !animation.animationName);
       if (!slide) return { visible, y: 0 };
       slide.pause();
       slide.currentTime = 110;
@@ -79,14 +79,14 @@ async function pickDocument() {
     else assert.ok(exit.visible && exit.y > 0, "O seletor desce antes de sumir: " + JSON.stringify(exit));
     console.log("Entrada e saída do seletor:", JSON.stringify({ motion, exit }));
     await waitFor('document.documentElement.classList.contains("dark")');
-    assert.equal(await evaluate('document.querySelector("#choice-dialog").open'), false);
+    await waitFor('!document.querySelector("#choice-dialog").open');
     await evaluate('if (document.querySelector("#remote").checked) document.querySelector("#remote").click()');
     await evaluate('document.querySelector("[data-import=links]").click()');
     await pickDocument();
     await waitFor('document.querySelector("#modal")?.open');
     assert.deepEqual(await evaluate('[...document.querySelectorAll(".import-summary b")].map(x=>x.textContent)'), ["47", "0"]);
     await evaluate('document.querySelector("#confirm-import").click()');
-    await waitFor('!!document.querySelector("[data-nav=home][aria-current=page]")');
+    await waitFor('!!document.querySelector("[data-nav=home][aria-current=page]") && !document.querySelector("#modal").open');
     const result = await evaluate('JSON.parse(localStorage.getItem("save-it:desktop:v1")).bookmarks.filter(b => b.url.includes("/document/"))');
     assert.deepEqual(result.map(b => b.url), addresses);
     assert.ok(result.every(b => b.folderId === null && !b.done));

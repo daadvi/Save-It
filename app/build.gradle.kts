@@ -9,8 +9,8 @@ android {
         applicationId = "br.com.saveit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.14.0"
+        versionCode = 19
+        versionName = "1.14.1"
     }
     testOptions.unitTests.isIncludeAndroidResources = true
     compileOptions {

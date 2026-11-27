@@ -852,6 +852,7 @@
         letter-spacing: -1px;
       }
       dialog {
+        --popup-distance: clamp(48px, 12dvh, 120px);
         width: min(550px, calc(100vw - 30px));
         border: var(--line);
         border-radius: 8px;
@@ -1194,7 +1195,7 @@
         to { opacity: 1; }
       }
       @keyframes modal-enter {
-        from { opacity: .35; transform: translateY(clamp(48px, 12dvh, 120px)); }
+        from { opacity: .35; transform: translateY(var(--popup-distance, 48px)); }
         to { opacity: 1; transform: translateY(0); }
       }
       @keyframes marker-swipe {
@@ -1220,51 +1221,14 @@
       .dock button.active {
         animation: appear 160ms ease-out;
       }
-      dialog[open] {
+      dialog[open]:not([data-closing]) {
         animation: modal-enter 330ms cubic-bezier(.18, .85, .3, 1) both;
       }
       dialog[open]::backdrop {
         animation: appear 180ms ease-out;
       }
-      @supports (transition-behavior: allow-discrete) and (overlay: auto) {
-        dialog {
-          opacity: 0;
-          transform: translateY(clamp(48px, 12dvh, 120px));
-          transition: transform 220ms ease-in, opacity 220ms ease-in,
-            display 220ms allow-discrete, overlay 220ms allow-discrete;
-        }
-        dialog[open] {
-          opacity: 1;
-          transform: translateY(0);
-          transition-duration: 330ms;
-          transition-timing-function: cubic-bezier(.18, .85, .3, 1);
-          animation: none;
-        }
-        #choice-dialog[open] {
-          transition-duration: 300ms;
-        }
-        dialog::backdrop {
-          opacity: 0;
-          transition: opacity 220ms ease-in, display 220ms allow-discrete,
-            overlay 220ms allow-discrete;
-        }
-        dialog[open]::backdrop {
-          opacity: 1;
-          animation: none;
-        }
-        dialog:not([open]),
-        dialog:not([open])::backdrop {
-          pointer-events: none;
-        }
-        @starting-style {
-          dialog[open] {
-            opacity: .35;
-            transform: translateY(clamp(48px, 12dvh, 120px));
-          }
-          dialog[open]::backdrop {
-            opacity: 0;
-          }
-        }
+      dialog[data-closing]::backdrop {
+        animation: appear 220ms ease-in reverse both;
       }
       #toast.show {
         animation: toast-enter 180ms cubic-bezier(.16, 1, .3, 1);
@@ -2370,10 +2334,40 @@
         const choiceDialog = document.querySelector("#choice-dialog");
         const choiceOptions = document.querySelector("#choice-options");
         let choiceTrigger = null;
-        function closeChoices() {
+        const popupExits = new WeakMap();
+        function finishPopupClose(popup) {
+          popupExits.get(popup)?.cancel();
+          popupExits.delete(popup);
+          popup.removeAttribute("data-closing");
+          popup.inert = false;
+          popup.close();
+        }
+        function dismissPopup(popup, afterClose) {
+          if (!popup.open || popupExits.has(popup)) return;
+          const finish = () => {
+            finishPopupClose(popup);
+            afterClose?.();
+          };
+          if (matchMedia("(prefers-reduced-motion: reduce)").matches || !popup.animate) {
+            finish();
+            return;
+          }
+          const style = getComputedStyle(popup);
+          const start = { transform: style.transform, opacity: style.opacity };
+          const distance = style.getPropertyValue("--popup-distance").trim() || "48px";
+          popup.dataset.closing = "";
+          popup.inert = true;
+          const exit = popup.animate(
+            [start, { transform: `translateY(${distance})`, opacity: 0 }],
+            { duration: 220, easing: "ease-in", fill: "forwards" },
+          );
+          popupExits.set(popup, exit);
+          exit.finished.then(finish, () => {});
+        }
+        function closeChoices(afterClose) {
           choiceTrigger?.setAttribute("aria-expanded", "false");
           choiceTrigger = null;
-          choiceDialog.close();
+          dismissPopup(choiceDialog, afterClose);
         }
         function enhanceSelects(container) {
           for (const select of container.querySelectorAll("select")) {
@@ -2404,12 +2398,13 @@
                 const button = event.target.closest("[data-choice]");
                 if (!button || button.disabled || !select.isConnected) return;
                 const index = Number(button.dataset.choice);
-                closeChoices();
-                if (index === select.selectedIndex) return;
-                select.selectedIndex = index;
-                select.dispatchEvent(new Event("change", { bubbles: true }));
-                const currentSelect = select.id ? document.getElementById(select.id) : select;
-                currentSelect?.nextElementSibling?.focus({ preventScroll: true });
+                closeChoices(() => {
+                  if (!select.isConnected || index === select.selectedIndex) return;
+                  select.selectedIndex = index;
+                  select.dispatchEvent(new Event("change", { bubbles: true }));
+                  const currentSelect = select.id ? document.getElementById(select.id) : select;
+                  currentSelect?.nextElementSibling?.focus({ preventScroll: true });
+                });
               };
               trigger.focus({ preventScroll: true });
               choiceDialog.showModal();
@@ -2420,7 +2415,7 @@
             select.after(trigger);
           }
         }
-        choiceDialog.querySelector("button").onclick = closeChoices;
+        choiceDialog.querySelector("button").onclick = () => closeChoices();
         choiceDialog.addEventListener("cancel", event => {
           event.preventDefault();
           closeChoices();
@@ -2445,15 +2440,19 @@
           buttons[next].focus();
         });
         function openModal(title, body) {
-          if (choiceDialog.open) closeChoices();
+          if (choiceDialog.open) {
+            closeChoices();
+            if (choiceDialog.open) finishPopupClose(choiceDialog);
+          }
+          if (popupExits.has(modal)) finishPopupClose(modal);
           modalContent.innerHTML = `<div class="modal-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Fechar">${icon("close")}</button></div>${body}`;
           enhanceSelects(modalContent);
           modal.showModal();
         }
-        function closeModal() {
+        function closeModal(afterClose) {
           if (choiceDialog.open) closeChoices();
           previewToken++;
-          modal.close();
+          dismissPopup(modal, afterClose);
         }
         async function linkModal(id) {
           const b = state.bookmarks.find((b) => b.id === id);
@@ -2511,8 +2510,7 @@
             };
           };
           if (b)
-            document.querySelector("#delete-link").onclick = () => {
-              closeModal();
+            document.querySelector("#delete-link").onclick = () => closeModal(() => {
               confirmModal(
                 "Excluir marcador?",
                 `“${e(b.title)}” será removido da coleção.`,
@@ -2529,7 +2527,7 @@
                   });
                 },
               );
-            };
+            });
           form.onsubmit = (event) => {
             event.preventDefault();
             try {
@@ -2617,8 +2615,7 @@
             toast(f ? "Pasta atualizada." : "Pasta criada.");
           };
           if (f)
-            document.querySelector("#delete-folder").onclick = () => {
-              closeModal();
+            document.querySelector("#delete-folder").onclick = () => closeModal(() => {
               confirmModal(
                 "Excluir pasta e subpastas?",
                 `As ${excluded.size} pastas serão removidas. Os marcadores serão preservados em “Sem pasta”.`,
@@ -2635,7 +2632,7 @@
                   toast("Pastas excluídas. Os links foram preservados.");
                 },
               );
-            };
+            });
         }
         async function refreshEntries(entries, fillMissing = false) {
           let count = 0;
@@ -2659,7 +2656,7 @@
               }
               count++;
               save();
-              if (!modal.open && view !== "settings") renderCards();
+              if ((!modal.open || modal.inert) && view !== "settings") renderCards();
             }
           }
           await Promise.all([worker(), worker()]);
@@ -2902,7 +2899,10 @@
               closeModal();
           }
         });
-        modal.addEventListener("cancel", () => previewToken++);
+        modal.addEventListener("cancel", event => {
+          event.preventDefault();
+          closeModal();
+        });
         window.addEventListener("resize", layoutCards);
         window.addEventListener("storage", (ev) => {
           if (ev.key === KEY && ev.newValue) {
