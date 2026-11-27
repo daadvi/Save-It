@@ -126,9 +126,14 @@ class MainActivity : Activity() {
             return
         }
         val pending = pendingShares()
+        val edit = prefs.edit()
         if ((0 until pending.length()).none { pending.optString(it) == url }) {
-            prefs.edit().putString("pendingShares", pending.put(url).toString()).apply()
+            edit.putString("pendingShares", pending.put(url).toString())
         }
+        if (intent.type?.startsWith("video/") == true) {
+            edit.putStringSet("pendingVideos", prefs.getStringSet("pendingVideos", emptySet()).orEmpty() + url)
+        }
+        edit.apply()
     }
 
     private fun acknowledgeShare(url: String) {
@@ -138,10 +143,13 @@ class MainActivity : Activity() {
             val item = pending.getString(index)
             if (item != url) remaining.put(item)
         }
-        prefs.edit().putString("pendingShares", remaining.toString()).apply()
+        prefs.edit().putString("pendingShares", remaining.toString())
+            .putStringSet("pendingVideos", prefs.getStringSet("pendingVideos", emptySet()).orEmpty() - url)
+            .apply()
     }
 
     private fun bootstrap(): JSONObject = JSONObject().put("shared", pendingShares()).apply {
+        put("videos", JSONArray(prefs.getStringSet("pendingVideos", emptySet()).orEmpty().toList()))
         if (!prefs.getBoolean("htmlMigrationComplete", false)) {
             val legacy = prefs.getString("library", null)
             put("legacy", legacy?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject())

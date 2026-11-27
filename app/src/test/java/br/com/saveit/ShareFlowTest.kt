@@ -50,6 +50,16 @@ class ShareFlowTest {
             .putExtra(Intent.EXTRA_TEXT, "<a href='$reel'>Abrir vídeo</a>")))
     }
 
+    @Test fun captionOrSubjectWithAPublicationUrlIsAcceptedAlongsideTheVideo() {
+        val video = Intent(Intent.ACTION_SEND).setType("video/mp4")
+            .putExtra(Intent.EXTRA_STREAM, Uri.parse("content://media/external/video/12"))
+            .putExtra(Intent.EXTRA_TEXT, "Um vídeo para guardar")
+            .putExtra(Intent.EXTRA_SUBJECT, reel)
+        val controller = Robolectric.buildActivity(MainActivity::class.java, video).setup()
+        assertEquals(listOf(reel), pending(controller.get()))
+        controller.pause().stop().destroy()
+    }
+
     @Test fun fileOnlyShareDoesNotSaveAPlaceholder() {
         val onlyFile = Intent(Intent.ACTION_SEND).setType("video/mp4")
             .putExtra(Intent.EXTRA_STREAM, Uri.parse("content://media/external/video/12"))

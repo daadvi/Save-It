@@ -51,6 +51,37 @@ async function test() {
       assert.deepEqual(await layout(apkPage), await layout(htmlPage), `Mobile layouts differ in ${tab}`);
     }
 
+    const requested = [];
+    await htmlPage.route("https://api.microlink.io/**", async (route) => {
+      requested.push(new URL(route.request().url()).searchParams.get("url"));
+      await route.fulfill({ json: { status: "success", data: {
+        title: "Do site", description: "Descrição publicada", image: { url: "https://example.org/nova.jpg" },
+      } } });
+    });
+    async function importBookmarks(name, text) {
+      await htmlPage.locator("#import-file").setInputFiles({
+        name, mimeType: name.endsWith("json") ? "application/json" : "text/html", buffer: Buffer.from(text),
+      });
+      await htmlPage.locator("#confirm-import").click();
+    }
+    const photo = "https://example.org/foto.jpg";
+    await importBookmarks("links.json", JSON.stringify({ folders: [], bookmarks: [
+      { url: "https://example.org/sem-descricao", title: "Meu título", image: photo, note: "Nota pessoal" },
+      { url: "https://example.org/completa", image: photo, description: "Do backup" },
+    ] }));
+    await importBookmarks("links.html", '<DL><DT><A HREF="https://example.org/html">Página</A></DL>');
+    await htmlPage.locator('[data-nav="home"]').click();
+    await htmlPage.waitForFunction(() =>
+      [...document.querySelectorAll(".card-description")].filter(el => el.textContent === "Descrição publicada").length === 2);
+    await htmlPage.reload();
+    const imported = await htmlPage.evaluate(() => JSON.parse(localStorage.getItem("save-it:desktop:v1")).bookmarks);
+    assert.deepEqual(requested.sort(), ["https://example.org/html", "https://example.org/sem-descricao"]);
+    assert.equal(imported[0].note, "Nota pessoal");
+    assert.equal(imported[0].image, photo);
+    assert.equal(imported[0].title, "Meu título");
+    assert.equal(imported[0].description, "Descrição publicada");
+    assert.equal(imported[1].description, "Do backup");
+
     await apkPage.evaluate(() => {
       window.androidBootstrap = {
         legacy: {

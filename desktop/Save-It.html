@@ -514,6 +514,17 @@
       .card h3 a:hover {
         text-decoration: underline;
       }
+      .card-description {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
       .card-footer {
         display: flex;
         align-items: center;
@@ -569,7 +580,7 @@
       .dock {
         position: fixed;
         z-index: 5;
-        bottom: 24px;
+        bottom: calc(24px - var(--dock-lowering, 0px));
         left: 50%;
         transform: translateX(-50%);
         display: flex;
@@ -1054,7 +1065,7 @@
           flex-shrink: 0;
         }
         .dock {
-          bottom: max(16px, env(safe-area-inset-bottom));
+          bottom: max(calc(16px - var(--dock-lowering, 0px)), env(safe-area-inset-bottom));
           gap: 1px;
           padding: 6px;
           border-radius: 10px;
@@ -1363,6 +1374,7 @@
                   url,
                   title: String(b.title || new URL(url).hostname),
                   note: String(b.note || ""),
+                  description: typeof b.description === "string" ? b.description.trim() : "",
                   folderId: ids.has(b.folderId) ? b.folderId : null,
                   done: b.done === true,
                   createdAt: Number(b.createdAt) || Date.now(),
@@ -1442,6 +1454,7 @@
               url: url || "",
               title: bookmark.title,
               note: typeof bookmark.description === "string" ? bookmark.description : "",
+              description: bookmark.description,
               image: bookmark.imageUrl,
               createdAt: Number.isFinite(created) && created > 0 ? created : Date.now(),
               folderId: memberships.get(url) || null,
@@ -1535,6 +1548,8 @@
                   bookmarks.push({
                     url: link.getAttribute("href"),
                     title: link.textContent,
+                    description: el.nextElementSibling?.tagName === "DD"
+                      ? el.nextElementSibling.textContent.trim() : "",
                     folderId: parentId,
                     createdAt: Number(link.getAttribute("add_date")) * 1000,
                   });
@@ -1571,7 +1586,9 @@
         function detectType(url) {
           const u = new URL(url);
           if (/\.(png|jpe?g|webp|gif|avif)(\?|$)/i.test(url)) return "image";
-          if (/(^|\.)(youtube\.com|youtu\.be|vimeo\.com)$/.test(u.hostname))
+          if (/\.(mp4|webm|mov|m4v)$/i.test(u.pathname) ||
+              (/(^|\.)instagram\.com$/.test(u.hostname) && /^\/reels?\//i.test(u.pathname)) ||
+              /(^|\.)(youtube\.com|youtu\.be|vimeo\.com|tiktok\.com)$/.test(u.hostname))
             return "video";
           if (/store\.steampowered\.com|itch\.io|gog\.com/.test(u.hostname))
             return "game";
@@ -1594,6 +1611,7 @@
         async function metadata(url) {
           const fallback = {
             title: new URL(url).hostname.replace(/^www\./, ""),
+            description: "",
             image: initialImage(url),
             type: detectType(url),
           };
@@ -1609,6 +1627,7 @@
             return {
               ...fallback,
               title: data.title || fallback.title,
+              description: typeof data.description === "string" ? data.description.trim() : "",
               image: data.image?.url?.startsWith("https://")
                 ? data.image.url
                 : fallback.image,
@@ -1651,7 +1670,10 @@
         };
         const android = window.SaveItAndroid;
         const isAndroid = Boolean(android) || /Android/i.test(navigator.userAgent);
-        if (isAndroid) document.getElementById("create-shortcut").remove();
+        if (isAndroid) {
+          document.documentElement.style.setProperty("--dock-lowering", "8px");
+          document.getElementById("create-shortcut").remove();
+        }
         const KEY = "save-it:desktop:v1";
         let state;
         let loadError = "";
@@ -1789,6 +1811,7 @@
                 b.title,
                 b.url,
                 b.note,
+                b.description,
                 ...folderPath(state.folders, b.folderId).map((f) => f.name),
               ]
                 .join(" ")
@@ -1835,7 +1858,7 @@
                 : image
                   ? `<img src="${e(image)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
                   : `<div class="cover-fallback">${e(domain)}</div>`;
-          return `<article class="card ${e(b.style || "")} ${b.done ? "is-done" : ""}" data-id="${e(b.id)}"><div class="card-inner"><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer" class="cover" aria-label="Abrir ${e(b.title)}">${art}<span class="type-badge">${icon(b.type === "site" ? "link" : b.type)}${labels[b.type] || "Site"}</span></a><div class="card-body"><div class="domain">${e(domain)}</div><h3><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer">${e(b.title)}</a></h3><div class="card-footer"><span class="folder-label" style="background:${f?.color || "#e8e7e1"}" title="${e(
+          return `<article class="card ${e(b.style || "")} ${b.done ? "is-done" : ""}" data-id="${e(b.id)}"><div class="card-inner"><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer" class="cover" aria-label="Abrir ${e(b.title)}">${art}<span class="type-badge">${icon(b.type === "site" ? "link" : b.type)}${labels[b.type] || "Site"}</span></a><div class="card-body"><div class="domain">${e(domain)}</div><h3><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer">${e(b.title)}</a></h3>${b.description ? `<p class="card-description">${e(b.description)}</p>` : ""}<div class="card-footer"><span class="folder-label" style="background:${f?.color || "#e8e7e1"}" title="${e(
             folderPath(state.folders, b.folderId)
               .map((f) => f.name)
               .join(" / ") || "Sem pasta",
@@ -1962,7 +1985,7 @@
               "Pequenos ajustes para uma coleção que é sua.",
               "",
             ) +
-            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
+            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As descrições e as imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
         }
         function openModal(title, body) {
           modalContent.innerHTML = `<div class="modal-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Fechar">${icon("close")}</button></div>${body}`;
@@ -2065,6 +2088,7 @@
                   data?.title ||
                   new URL(url).hostname,
                 note: form.elements.note.value.trim(),
+                description: (same && b.description) || data?.description || "",
                 folderId: form.elements.folder.value || null,
                 type: data?.type || detectType(url),
                 image: data?.image || (same ? b.image : initialImage(url)),
@@ -2152,7 +2176,7 @@
               );
             };
         }
-        async function refreshEntries(entries) {
+        async function refreshEntries(entries, fillMissing = false) {
           let count = 0;
           const queue = [...entries];
           async function worker() {
@@ -2163,9 +2187,12 @@
               const existing = state.bookmarks.find(
                 (x) => x.id === b.id && x.url === url,
               );
+              if (!state.prefs.remote) break;
               if (existing) {
-                existing.image = result.image || existing.image;
-                existing.type = result.type;
+                if (!fillMissing || !existing.image)
+                  existing.image = result.image || existing.image;
+                if (!existing.description) existing.description = result.description;
+                if (!existing.type || existing.type === "site") existing.type = result.type;
                 if (existing.title === new URL(url).hostname || !existing.title)
                   existing.title = result.title;
               }
@@ -2215,7 +2242,7 @@
                 `${added.length} links importados. ${merged.skipped} duplicados ignorados.`,
               );
               if (state.prefs.remote)
-                refreshEntries(added.filter((b) => !b.image));
+                refreshEntries(added.filter((b) => !b.image || !b.description), true);
               pendingImport = null;
             };
           } catch (error) {
@@ -2397,7 +2424,7 @@
           const send = (action, details = {}) =>
             bridge.postMessage(JSON.stringify({ action, ...details }));
           bridge.onmessage = (event) => {
-            const { legacy, accent, compact, shared = [] } = JSON.parse(event.data);
+            const { legacy, accent, compact, shared = [], videos = [] } = JSON.parse(event.data);
             const incoming = [];
             if (legacy && !state.androidMigrationComplete) {
               const currentFolders = new Set(state.folders.map((f) => f.id));
@@ -2417,7 +2444,8 @@
               if (state.bookmarks.some((link) => link.url === url)) continue;
               const entry = {
                 id: uid(), url, title: new URL(url).hostname, folderId: null,
-                type: detectType(url), image: initialImage(url), createdAt: Date.now(), done: false,
+                type: videos.includes(original) ? "video" : detectType(url),
+                image: initialImage(url), createdAt: Date.now(), done: false,
               };
               state.bookmarks.push(entry);
               incoming.push(entry);
@@ -2430,7 +2458,7 @@
               if (modal.open) closeModal();
               go("home");
               toast(incoming.length === 1 ? "Link salvo no mural." : `${incoming.length} links salvos no mural.`);
-              if (state.prefs.remote) refreshEntries(incoming.filter((entry) => !entry.image));
+              if (state.prefs.remote) refreshEntries(incoming, true);
             } else {
               render();
               if (shared.length) toast("Este link já está na sua coleção.");

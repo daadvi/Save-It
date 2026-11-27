@@ -45,5 +45,8 @@ internal fun sharedWebUrl(intent: Intent): String? {
         }
     }
     val stream = intent.getParcelableExtra<android.os.Parcelable>(Intent.EXTRA_STREAM) as? Uri
-    return intent.dataString?.let(::webUrl) ?: stream?.toString()?.let(::webUrl)
+    return intent.dataString?.let(::webUrl)
+        ?: stream?.toString()?.let(::webUrl)
+        ?: linkInText(intent.getCharSequenceExtra(Intent.EXTRA_SUBJECT))
+        ?: linkInText(intent.getCharSequenceExtra(Intent.EXTRA_TITLE))
 }
