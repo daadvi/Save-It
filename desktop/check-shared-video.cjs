@@ -61,8 +61,32 @@ async function inspectDevice(check) {
   const hasCard = (url) => `[...document.querySelectorAll("article a.cover")].some(el => el.href === ${JSON.stringify(url)})`;
   await inspectDevice(async (evaluate, waitFor) => {
     await waitFor(hasCard(reel));
+    await evaluate('document.querySelector("[data-nav=folders]").click()');
     const gap = await evaluate('innerHeight - document.querySelector(".dock").getBoundingClientRect().bottom');
-    assert.ok(Math.abs(gap - 8) < 1, "Margem inferior da dock: " + gap);
+    assert.ok(Math.abs(gap - 6) < 1, "Margem inferior da dock: " + gap);
+    // A CSS-only check misses extra space between the WebView and the system bar.
+    const display = adb("shell", "dumpsys", "window", "displays");
+    const navbar = display.split("\n").find(line =>
+      /(?:type=|mType=|ITYPE_)navigation_?bars?\b/i.test(line) && /(?:mFrame|frame)=\[0,\d+\]\[/.test(line));
+    assert.ok(navbar, "Área da navegação do sistema disponível");
+    const navTop = Number(navbar.match(/(?:mFrame|frame)=\[0,(\d+)\]/)[1]);
+    const scale = await evaluate('devicePixelRatio');
+    await evaluate('document.querySelector(".dock").style.borderBottomColor = "rgb(250, 0, 230)"');
+    await delay(350);
+    const frame = execFileSync("adb", ["exec-out", "screencap"], {maxBuffer: 64 * 1024 * 1024});
+    const width = frame.readUInt32LE(0), height = frame.readUInt32LE(4);
+    const header = frame.length - width * height * 4;
+    assert.ok(header >= 12 && header <= 32, "Captura RGBA do emulador");
+    const x = Math.floor(width / 2);
+    let borderBottom = 0;
+    for (let y = 0; y < height; y++) {
+      const i = header + (y * width + x) * 4;
+      if (frame[i] > 235 && frame[i + 1] < 15 && frame[i + 2] > 215) borderBottom = y + 1;
+    }
+    assert.ok(borderBottom > 0, "Borda inferior visível na captura");
+    const physicalGap = (navTop - borderBottom) / scale;
+    console.log("Distância entre a dock e a barra do sistema em dp:", physicalGap);
+    assert.ok(Math.abs(physicalGap - 6) < 1.5, "Área segura contada uma vez");
     await evaluate('document.querySelector("[data-nav=settings]").click()');
     share("video/mp4", "STREAM", video);
     await waitFor(hasCard(video));

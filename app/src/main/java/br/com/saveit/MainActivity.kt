@@ -51,7 +51,9 @@ class MainActivity : Activity() {
             setBackgroundColor(Color.rgb(247, 247, 242))
             setOnApplyWindowInsetsListener { container, insets ->
                 applySafeArea(container, insets)
-                insets
+                @Suppress("DEPRECATION")
+                if (Build.VERSION.SDK_INT >= 30) WindowInsets.CONSUMED
+                else insets.consumeSystemWindowInsets().consumeStableInsets()
             }
             addView(web, FrameLayout.LayoutParams(-1, -1))
         }

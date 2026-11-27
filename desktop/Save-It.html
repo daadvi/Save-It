@@ -580,7 +580,7 @@
       .dock {
         position: fixed;
         z-index: 5;
-        bottom: calc(24px - var(--dock-lowering, 0px));
+        bottom: var(--dock-bottom, 24px);
         left: 50%;
         transform: translateX(-50%);
         display: flex;
@@ -1065,7 +1065,7 @@
           flex-shrink: 0;
         }
         .dock {
-          bottom: max(calc(16px - var(--dock-lowering, 0px)), env(safe-area-inset-bottom));
+          bottom: var(--dock-bottom, max(16px, env(safe-area-inset-bottom)));
           gap: 1px;
           padding: 6px;
           border-radius: 10px;
@@ -1671,7 +1671,9 @@
         const android = window.SaveItAndroid;
         const isAndroid = Boolean(android) || /Android/i.test(navigator.userAgent);
         if (isAndroid) {
-          document.documentElement.style.setProperty("--dock-lowering", "8px");
+          // The APK already places the entire WebView inside the system bars.
+          const bottom = android ? "6px" : "max(6px, env(safe-area-inset-bottom))";
+          document.documentElement.style.setProperty("--dock-bottom", bottom);
           document.getElementById("create-shortcut").remove();
         }
         const KEY = "save-it:desktop:v1";
