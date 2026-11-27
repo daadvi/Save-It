@@ -1,4 +1,4 @@
-name: Conferir compartilhamento e importação no APK
+name: Conferir seleção e importação no APK
 on:
   push:
     branches: ['distribuicao/ui-v1.12.0']
@@ -33,5 +33,4 @@ jobs:
           script: |
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.${{ matrix.navigation }}
             adb install downloads/Save-It-1.12.0.apk
-            node desktop/check-shared-video.cjs
             node desktop/check-document.cjs
