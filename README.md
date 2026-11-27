@@ -1,6 +1,6 @@
 # Save It!
 
-Organizador de marcadores com uma edição Android em Kotlin e uma edição de computador em um arquivo HTML.
+Organizador de marcadores que usa o mesmo HTML no computador e no Android. O APK roda a interface localmente em um WebView e usa Kotlin para receber compartilhamentos e abrir o seletor de arquivos do Android.
 
 ## Downloads
 

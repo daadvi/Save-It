@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import org.junit.Assert.*
+import org.json.JSONArray
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -19,28 +20,24 @@ class ShareFlowTest {
     private fun textShare(text: String) = Intent(Intent.ACTION_SEND)
         .setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
 
-    private fun library(activity: Activity): Library {
-        val raw = activity.getSharedPreferences("collection", Context.MODE_PRIVATE).getString("library", null)
-        return raw?.let(Library::parseJson) ?: Library()
+    private fun pending(activity: Activity): List<String> {
+        val raw = activity.getSharedPreferences("collection", Context.MODE_PRIVATE)
+            .getString("pendingShares", "[]")
+        val urls = JSONArray(raw)
+        return (0 until urls.length()).map { urls.getString(it) }
     }
 
-    @Test fun selectingShareTargetSavesOnceWithoutPressingSave() {
-        val intent = textShare("Olha este vídeo!\n$reel")
-        val controller = Robolectric.buildActivity(MainActivity::class.java, intent).setup()
+    @Test fun sharedLinksWaitForThePageAndSurviveRestart() {
+        val controller = Robolectric.buildActivity(MainActivity::class.java, textShare("Olha este vídeo!\n$reel")).setup()
         val activity = controller.get()
-        val link = library(activity).links.single()
-        assertEquals(reel, link.url)
-        assertNull(link.folder)
-        assertFalse(link.done)
-
+        assertEquals(listOf(reel), pending(activity))
         controller.newIntent(textShare(reel))
-        assertEquals(listOf(link), library(activity).links)
-
+        assertEquals(listOf(reel), pending(activity))
         val other = "https://example.org/segundo"
         controller.newIntent(textShare(other))
         controller.pause().stop().destroy()
         val reopened = Robolectric.buildActivity(MainActivity::class.java).setup()
-        assertEquals(setOf(reel, other), library(reopened.get()).links.map { it.url }.toSet())
+        assertEquals(listOf(reel, other), pending(reopened.get()))
         reopened.pause().stop().destroy()
     }
 
@@ -57,7 +54,7 @@ class ShareFlowTest {
         val onlyFile = Intent(Intent.ACTION_SEND).setType("video/mp4")
             .putExtra(Intent.EXTRA_STREAM, Uri.parse("content://media/external/video/12"))
         val controller = Robolectric.buildActivity(MainActivity::class.java, onlyFile).setup()
-        assertTrue(library(controller.get()).links.isEmpty())
+        assertTrue(pending(controller.get()).isEmpty())
         controller.pause().stop().destroy()
     }
 }

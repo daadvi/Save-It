@@ -9,8 +9,8 @@ android {
         applicationId = "br.com.saveit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.5.0"
+        versionCode = 7
+        versionName = "1.6.0"
     }
     testOptions.unitTests.isIncludeAndroidResources = true
     compileOptions {
@@ -20,10 +20,16 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
-    implementation("androidx.recyclerview:recyclerview:1.3.2")
-    implementation("io.coil-kt:coil:2.7.0")
+    implementation("androidx.webkit:webkit:1.12.1")
     implementation("org.jsoup:jsoup:1.18.3")
     testImplementation("org.robolectric:robolectric:4.14.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }
+
+val webAssets = tasks.register<Sync>("syncWebAssets") {
+    from(rootProject.file("desktop/Save-It.html"))
+    into(layout.buildDirectory.dir("generated/webAssets"))
+}
+android.sourceSets["main"].assets.srcDir(webAssets.map { it.destinationDir })
+tasks.named("preBuild").configure { dependsOn(webAssets) }

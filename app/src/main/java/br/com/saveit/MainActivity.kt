@@ -1,430 +1,229 @@
 package br.com.saveit
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.FrameLayout
 import android.view.View
-import android.widget.*
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.StaggeredGridLayoutManager
-import java.net.URI
-import java.util.concurrent.Executors
+import android.view.ViewGroup
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.widget.Toast
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("collection", MODE_PRIVATE) }
-    private var library = Library()
-    private var tab = 0
-    private var folderId: String? = null
-    private var doneFolder: String? = null
-    private var query = ""
-    private var selectedType = 0
-    private var sortOrder = 0
-    private var selectedFolder: String? = null
-    private var folderStatus = 0
-    private var accent = Color.rgb(255, 207, 113)
-    private lateinit var column: LinearLayout
-    private lateinit var grid: RecyclerView
-    private lateinit var dock: LinearLayout
-    private val previews = Executors.newFixedThreadPool(3)
-    private val requested = mutableSetOf<String>()
-    private var exportHtml = false
-    private val destinations = listOf("Mural", "Pastas", "Concluídos", "Ajustes")
+    private lateinit var web: WebView
+    private var pageReady = false
+    private var chooser: ValueCallback<Array<Uri>>? = null
+    private var exporting = false
+    private val pendingExport by lazy { File(cacheDir, "pending-backup") }
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
-        val raw = prefs.getString("library", null)
-        if (raw != null) {
-            try { library = Library.parseJson(raw) }
-            catch (_: Exception) {
-                AlertDialog.Builder(this).setMessage("Não foi possível abrir a coleção salva.").setPositiveButton("Fechar") { _, _ -> finish() }.setCancelable(false).show()
-                return
-            }
-        }
-        accent = prefs.getInt("accent", accent)
-        tab = state?.getInt("tab") ?: 0
-        folderId = state?.getString("folder")
-        doneFolder = state?.getString("doneFolder")
-        query = state?.getString("query").orEmpty()
-        exportHtml = state?.getBoolean("html") ?: false
-        val frame = FrameLayout(this).apply {
-            setBackgroundColor(paper)
-            setOnApplyWindowInsetsListener { v, insets ->
-                v.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop, insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+        exporting = state?.getBoolean("exporting") == true
+        web = WebView(this).apply {
+            setBackgroundColor(Color.rgb(247, 247, 242))
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.allowFileAccess = false
+            settings.allowContentAccess = false
+            settings.useWideViewPort = true
+            // Use the same CSS viewport and text scale as the file opened in Chrome.
+            settings.textZoom = 100
+            webViewClient = pageClient()
+            webChromeClient = fileClient()
+            setOnApplyWindowInsetsListener { view, insets ->
+                @Suppress("DEPRECATION")
+                view.setPadding(insets.systemWindowInsetLeft, insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight, insets.systemWindowInsetBottom)
+                @Suppress("DEPRECATION")
                 insets.consumeSystemWindowInsets()
             }
         }
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-        column = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(18), dp(7), dp(18), dp(100))
-        }
-        frame.addView(column, FrameLayout.LayoutParams(-1, -1))
-        dock = LinearLayout(this).apply {
-            setPadding(0, 0, 0, dp(12))
-            gravity = Gravity.CENTER
-        }
-        frame.addView(dock, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
-        setContentView(frame)
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        setContentView(web)
+        web.requestApplyInsets()
         if (state == null) receiveShare(intent)
-        show()
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+            WebViewCompat.addWebMessageListener(web, "SaveItAndroid", setOf(ORIGIN)) { _, message, _, mainFrame, reply ->
+                if (!mainFrame) return@addWebMessageListener
+                val data = runCatching { JSONObject(message.data ?: "") }.getOrNull()
+                    ?: return@addWebMessageListener
+                when (data.optString("action")) {
+                    "ready" -> {
+                        pageReady = true
+                        reply.postMessage(bootstrap().toString())
+                    }
+                    "migrated" -> prefs.edit().putBoolean("htmlMigrationComplete", true).apply()
+                    "shared" -> acknowledgeShare(data.optString("url"))
+                    "export" -> exportBackup(data)
+                    "open" -> openLink(Uri.parse(data.optString("url")))
+                }
+            }
+        }
+        web.loadUrl(APP_URL)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (!::column.isInitialized) return
         setIntent(intent)
         receiveShare(intent)
-        show()
+        if (pageReady) {
+            web.evaluateJavascript("window.dispatchEvent(new Event('save-it-android-resume'))", null)
+        }
     }
+
+    private fun pendingShares(): JSONArray = JSONArray(prefs.getString("pendingShares", "[]") ?: "[]")
 
     private fun receiveShare(intent: Intent) {
         if (intent.action != Intent.ACTION_SEND) return
         val url = sharedWebUrl(intent)
         if (url == null) {
-            message("Este compartilhamento veio sem um link. No aplicativo de origem, compartilhe o link da publicação.")
+            toast("Este compartilhamento veio sem um link. Compartilhe o link da publicação.")
             return
         }
-        if (library.links.any { it.url == url }) {
-            message("Este link já está na sua coleção.")
+        val pending = pendingShares()
+        if ((0 until pending.length()).none { pending.optString(it) == url }) {
+            prefs.edit().putString("pendingShares", pending.put(url).toString()).apply()
+        }
+    }
+
+    private fun acknowledgeShare(url: String) {
+        val pending = pendingShares()
+        val remaining = JSONArray()
+        for (index in 0 until pending.length()) {
+            val item = pending.getString(index)
+            if (item != url) remaining.put(item)
+        }
+        prefs.edit().putString("pendingShares", remaining.toString()).apply()
+    }
+
+    private fun bootstrap(): JSONObject = JSONObject().put("shared", pendingShares()).apply {
+        if (!prefs.getBoolean("htmlMigrationComplete", false)) {
+            val legacy = prefs.getString("library", null)
+            put("legacy", legacy?.let { runCatching { JSONObject(it) }.getOrNull() } ?: JSONObject())
+            if (prefs.contains("accent")) {
+                put("accent", "#%06x".format(prefs.getInt("accent", 0) and 0xffffff))
+            }
+            put("compact", prefs.getBoolean("compact", false))
+        }
+    }
+
+    private fun pageClient() = object : WebViewClient() {
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (request.url.toString() != APP_URL) return null
+            return WebResourceResponse("text/html", "UTF-8", 200, "OK",
+                mapOf("Content-Security-Policy" to "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https:; connect-src https://api.microlink.io; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"),
+                assets.open("Save-It.html"))
+        }
+
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            val url = request.url
+            if (url.buildUpon().fragment(null).build().toString() == APP_URL) return false
+            if (request.isForMainFrame && request.hasGesture()) openLink(url)
+            return true
+        }
+    }
+
+    private fun openLink(url: Uri) {
+        if (url.scheme !in setOf("http", "https") || url.host.isNullOrEmpty()) return
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, url)) }
+            .onFailure { toast("Nenhum navegador disponível.") }
+    }
+
+    private fun fileClient() = object : WebChromeClient() {
+        override fun onShowFileChooser(
+            view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams
+        ): Boolean {
+            chooser?.onReceiveValue(null)
+            chooser = callback
+            val picker = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+            @Suppress("DEPRECATION")
+            val launched = runCatching { startActivityForResult(picker, IMPORT_REQUEST) }.isSuccess
+            if (!launched) {
+                chooser = null
+                callback.onReceiveValue(null)
+                toast("Não foi possível abrir o seletor de arquivos.")
+            }
+            return true
+        }
+    }
+
+    private fun exportBackup(data: JSONObject) {
+        if (exporting) return
+        val type = data.optString("type")
+        if (type !in setOf("application/json", "text/html")) return
+        if (runCatching { pendingExport.writeText(data.getString("content")) }.isFailure) {
+            toast("Não foi possível preparar o backup.")
             return
         }
-        val bookmark = Link(freshId(), url, URI(url).host, null)
-        save(library.copy(links = library.links + bookmark))
-        tab = 0
-        query = ""
-        message("Link salvo no mural.")
+        exporting = true
+        val picker = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+            .setType(type).putExtra(Intent.EXTRA_TITLE, data.optString("name"))
+        @Suppress("DEPRECATION")
+        runCatching { startActivityForResult(picker, EXPORT_REQUEST) }.onFailure {
+            exporting = false
+            pendingExport.delete()
+            toast("Não foi possível abrir o seletor de arquivos.")
+        }
     }
 
-    override fun onSaveInstanceState(out: Bundle) {
-        super.onSaveInstanceState(out)
-        out.putInt("tab", tab); out.putString("folder", folderId); out.putString("doneFolder", doneFolder)
-        out.putString("query", query); out.putBoolean("html", exportHtml)
-    }
-
-    private fun message(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
-    private fun save(next: Library) {
-        library = next
-        prefs.edit().putString("library", next.json()).apply()
-    }
-    private fun path(id: String?) = library.path(id).joinToString(" / ") { it.name }
-    private fun folderName(id: String?) = library.folders.find { it.id == id }?.name ?: "Sem pasta"
-    private fun row() = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-    private fun LinearLayout.weighted(view: View, height: Int = -2) = addView(view, LinearLayout.LayoutParams(0, height, 1f))
-    private fun select(title: String, names: List<String>, onSelect: (Int) -> Unit) {
-        AlertDialog.Builder(this).setTitle(title).setItems(names.toTypedArray()) { _, index -> onSelect(index) }.show()
-    }
-    private fun show() {
-        column.removeAllViews()
-        dock.removeAllViews()
-        val navLabels = listOf("▦\nInício", "▱\nPastas", "◉\nConcluídos", "⚙\nAjustes")
-        val dockShell = LinearLayout(this).apply {
-            gravity = Gravity.CENTER
-            background = outlined()
-            elevation = dp(5).toFloat()
-            setPadding(dp(4), dp(4), dp(4), dp(4))
-        }
-        navLabels.forEachIndexed { index, title ->
-            val item = text(title, 11, index == tab).apply {
-                gravity = Gravity.CENTER
-                background = if (index == tab) outlined(accent) else null
-                setOnClickListener { tab = index; query = ""; show() }
+    @Deprecated("WebView file chooser uses activity result callbacks")
+    override fun onActivityResult(request: Int, result: Int, data: Intent?) {
+        super.onActivityResult(request, result, data)
+        val uri = data?.data?.takeIf { result == RESULT_OK }
+        when (request) {
+            IMPORT_REQUEST -> {
+                chooser?.onReceiveValue(uri?.let { arrayOf(it) })
+                chooser = null
             }
-            dockShell.addView(item, LinearLayout.LayoutParams(0, dp(49), 1f))
-        }
-        val dockWidth = minOf(resources.displayMetrics.widthPixels - dp(28), dp(430))
-        dock.addView(dockShell, LinearLayout.LayoutParams(dockWidth, -2))
-
-        val brand = row().apply { setPadding(dp(1), dp(5), dp(1), dp(14)) }
-        brand.addView(ImageView(this).apply { setImageResource(R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(34), dp(34)))
-        brand.addView(text("Save It!", 26, true).apply { setPadding(dp(7), 0, dp(9), 0) })
-        brand.addView(text("│  Biblioteca local", 12, color = subtle), LinearLayout.LayoutParams(0, -2, 1f))
-        brand.addView(text("●", 13, color = Color.rgb(65, 130, 70)))
-        column.addView(brand)
-        column.addView(View(this).apply { setBackgroundColor(ink) }, LinearLayout.LayoutParams(-1, dp(2)))
-        column.addSpace(this, 25)
-        val eyebrow = listOf("BIBLIOTECA LOCAL", "CADA IDEIA NO SEU LUGAR", "MISSÃO CUMPRIDA", "DEIXE COM A SUA CARA")[tab]
-        column.addView(text("━  $eyebrow", 11, true).apply { letterSpacing = .13f })
-        column.addSpace(this, 10)
-        val heading = row()
-        val parts = listOf(
-            "Meu" to "mural.", "Um universo de" to "pastas.",
-            "Visto. Lido." to "Concluído.", "Seu espaço." to "Suas regras."
-        )[tab]
-        heading.addView(text(parts.first + " ", 27, true))
-        heading.addView(text(parts.second, 27, true).apply { setBackgroundColor(accent); setPadding(dp(4), 0, dp(4), 0) })
-        column.addView(heading)
-        column.addSpace(this, 10)
-        val subtitle = listOf(
-            "Seus links pendentes de todas as pastas.", "Organize suas descobertas. Do seu jeito.",
-            "Suas descobertas já exploradas, sempre à mão.", "Pequenos ajustes para uma coleção que é sua."
-        )[tab]
-        column.addView(text(subtitle, 14, color = subtle))
-        column.addSpace(this, 12)
-        if (tab != 3) {
-            column.addView(action("+ Salvar link", accent) { linkEditor() }, LinearLayout.LayoutParams(-1, dp(46)))
-            column.addSpace(this, 16)
-        }
-        if (tab == 3) { settings(); return }
-        if (tab == 1) {
-            val newFolder = action("+ Nova pasta", Color.WHITE) { folderEditor() }
-            column.addView(newFolder, LinearLayout.LayoutParams(-1, dp(45)))
-            column.addSpace(this, 17)
-            val folderBar = LinearLayout(this)
-            if (folderId != null) folderBar.addView(action("‹ Voltar", Color.WHITE) {
-                folderId = library.folders.find { it.id == folderId }?.parent; show()
-            })
-            library.folders.filter { it.parent == folderId }.forEach { f ->
-                folderBar.addView(action("▱  " + f.name, accent) { folderId = f.id; show() }.apply {
-                    setOnLongClickListener { folderEditor(f); true }
-                })
-            }
-            if (folderId != null) column.addView(text(path(folderId), 14, true))
-            column.addView(HorizontalScrollView(this).apply { addView(folderBar) })
-            if (library.folders.isEmpty()) {
-                val emptyFolders = emptyPanel("Sua primeira pasta está esperando", "Crie um lugar para suas próximas descobertas.")
-                emptyFolders.addView(action("Nova pasta", accent) { folderEditor() })
-                column.addView(emptyFolders, LinearLayout.LayoutParams(-1, -2))
-            }
-            val statuses = row()
-            listOf("Pendentes", "Concluídos", "Todos").forEachIndexed { i, name ->
-                statuses.addView(chip(name, folderStatus == i) { folderStatus = i; show() })
-            }
-            column.addView(statuses)
-            column.addSpace(this, 12)
-        } else {
-            column.addView(text("${library.links.count { it.done == (tab == 2) }} links salvos    ·    ${library.folders.size} pastas", 13, color = subtle))
-            column.addSpace(this, 17)
-        }
-        val searchRow = row()
-        val search = action(if (query.isEmpty()) "⌕  Buscar nos seus links..." else "⌕  $query", Color.WHITE) {
-            val input = EditText(this).apply { setSingleLine(); setText(query); hint = "Título ou endereço" }
-            AlertDialog.Builder(this).setTitle("Buscar marcadores").setView(input)
-                .setPositiveButton("Buscar") { _, _ -> query = input.text.toString().trim(); show() }
-                .setNeutralButton("Limpar") { _, _ -> query = ""; show() }.setNegativeButton("Cancelar", null).show()
-        }.apply { gravity = Gravity.CENTER_VERTICAL or Gravity.START; setPadding(dp(11), 0, 0, 0) }
-        searchRow.weighted(search, dp(44))
-        val folders = listOf("Todas as pastas") + library.folders.map { path(it.id) }
-        val folderFilter = action(if (selectedFolder == null) "Todas ▾" else folderName(selectedFolder), Color.WHITE) {
-            select("Filtrar por pasta", folders) { selectedFolder = library.folders.getOrNull(it - 1)?.id; show() }
-        }
-        searchRow.addView(folderFilter, LinearLayout.LayoutParams(dp(115), dp(44)).apply { leftMargin = dp(7) })
-        column.addView(searchRow)
-        column.addSpace(this, 12)
-        val chips = LinearLayout(this)
-        listOf("▦ Todos", "↗ Sites", "▣ Vídeos", "▧ Imagens", "🎮 Jogos").forEachIndexed { i, name ->
-            chips.addView(chip(name, selectedType == i) { selectedType = i; show() }.apply {
-                layoutParams = LinearLayout.LayoutParams(-2, -2).apply { rightMargin = dp(6) }
-            })
-        }
-        column.addView(HorizontalScrollView(this).apply { isHorizontalScrollBarEnabled = false; addView(chips) })
-        column.addSpace(this, 17)
-        val items = library.links.filter { b ->
-            val folderMatch = when (tab) {
-                1 -> b.folder == folderId
-                2 -> doneFolder == null || library.path(b.folder).any { it.id == doneFolder }
-                else -> selectedFolder == null || library.path(b.folder).any { it.id == selectedFolder }
-            }
-            val statusMatch = if (tab == 1) folderStatus == 2 || b.done == (folderStatus == 1) else b.done == (tab == 2)
-            val kind = when (selectedType) {
-                2 -> b.url.contains("youtube", true) || b.url.contains("vimeo", true) || b.url.contains("instagram", true)
-                3 -> b.url.substringBefore('?').matches(Regex(".*\\.(png|jpg|jpeg|webp|gif)", RegexOption.IGNORE_CASE))
-                4 -> b.url.contains("steampowered", true) || b.url.contains("itch.io", true)
-                1 -> !b.url.contains("youtube", true) && !b.url.contains("instagram", true)
-                else -> true
-            }
-            folderMatch && statusMatch && kind && (b.title.contains(query, true) || b.url.contains(query, true) || b.note.contains(query, true))
-        }.sortedByDescending { if (tab == 2) it.completed else it.created }
-        column.addView(text("SUAS DESCOBERTAS   ${items.size} marcadores ─────────", 11, true))
-        column.addSpace(this, 10)
-        if (items.isEmpty()) {
-            val title = if (query.isNotEmpty()) "Nenhum link por aqui" else if (tab == 2) "Nada concluído ainda" else "Espaço para novas descobertas"
-            val panel = emptyPanel(title, if (query.isNotEmpty()) "Tente outro termo ou ajuste os filtros." else "Salve um link e comece sua coleção.")
-            if (tab != 2) panel.addView(action("+ Salvar link", accent) { linkEditor() })
-            column.addView(panel, LinearLayout.LayoutParams(-1, -2))
-            return
-        }
-        grid = RecyclerView(this).apply {
-            layoutManager = StaggeredGridLayoutManager(if (resources.configuration.screenWidthDp >= 650) 3 else 2, RecyclerView.VERTICAL)
-            adapter = Cards(items, library.folders.associateBy { it.id }, accent, ::openLink, { linkEditor(it) }, ::complete, ::resolve)
-        }
-        column.addView(grid, LinearLayout.LayoutParams(-1, 0, 1f))
-    }
-
-    private fun emptyPanel(title: String, description: String) = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        gravity = Gravity.CENTER
-        background = outlined(dashed = true)
-        setPadding(dp(16), dp(45), dp(16), dp(45))
-        addView(text("✳", 33))
-        addView(text(title, 20, true))
-        addSpace(this@MainActivity, 8)
-        addView(text(description, 13, color = subtle))
-        addSpace(this@MainActivity, 17)
-    }
-
-    private fun openLink(link: Link) {
-        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url))) }.onFailure { message("Nenhum navegador disponível.") }
-    }
-    private fun complete(link: Link) {
-        save(library.copy(links = library.links.map {
-            if (it.id == link.id) it.copy(done = !it.done, completed = if (it.done) 0L else System.currentTimeMillis()) else it
-        }))
-        show()
-    }
-    private fun resolve(item: Link) {
-        if (!requested.add(item.id + item.url)) return
-        previews.execute {
-            val data = preview(item.url)
-            runOnUiThread {
-                if (isDestroyed || isFinishing) return@runOnUiThread
-                val current = library.links.find { it.id == item.id && it.url == item.url } ?: return@runOnUiThread
-                val title = if (current.title == URI(item.url).host) data.title.ifBlank { current.title } else current.title
-                if (current.image == data.image && current.title == title) return@runOnUiThread
-                val updated = current.copy(image = data.image, title = title)
-                save(library.copy(links = library.links.map { if (it.id == item.id) updated else it }))
-                if (::grid.isInitialized) (grid.adapter as? Cards)?.update(updated)
-            }
-        }
-    }
-    private fun linkEditor(item: Link? = null) {
-        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), 0) }
-        fun field(hintText: String, value: String) = EditText(this).apply {
-            hint = hintText; setSingleLine(); setText(value); body.addView(this)
-        }
-        val url = field("URL do link", item?.url.orEmpty())
-        val title = field("Título (opcional)", item?.title.orEmpty())
-        val note = field("Nota (opcional)", item?.note.orEmpty())
-        val folder = Spinner(this)
-        val choices = listOf<Folder?>(null) + library.folders
-        folder.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, choices.map { if (it == null) "Sem pasta" else path(it.id) })
-        val selected = if (item != null) item.folder else if (tab == 1) folderId else null
-        folder.setSelection(choices.indexOfFirst { it?.id == selected }.coerceAtLeast(0))
-        body.addView(folder)
-        val builder = AlertDialog.Builder(this).setTitle(if (item == null) "Salvar link" else "Editar marcador").setView(body)
-            .setNegativeButton("Cancelar", null).setPositiveButton("Salvar", null)
-        if (item != null) builder.setNeutralButton("Excluir") { _, _ ->
-            AlertDialog.Builder(this).setMessage("Excluir este marcador?").setNegativeButton("Cancelar", null)
-                .setPositiveButton("Excluir") { _, _ -> save(library.copy(links = library.links.filterNot { it.id == item.id })); show() }.show()
-        }
-        val dialog = builder.show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val safe = webUrl(url.text.toString())
-            if (safe == null) { url.error = "Informe um endereço HTTP ou HTTPS."; return@setOnClickListener }
-            if (library.links.any { it.url == safe && it.id != item?.id }) { url.error = "Este link já está salvo."; return@setOnClickListener }
-            val b = (item ?: Link(freshId(), safe, "", null)).copy(url = safe, title = title.text.toString().trim().ifBlank { URI(safe).host },
-                note = note.text.toString(), folder = choices[folder.selectedItemPosition]?.id, image = if (item?.url == safe) item.image else "")
-            save(library.copy(links = library.links.filterNot { it.id == b.id } + b))
-            dialog.dismiss(); show(); if (b.image.isBlank()) resolve(b)
-        }
-    }
-    private fun folderEditor(existing: Folder? = null) {
-        val name = EditText(this).apply { hint = "Nome da pasta"; setText(existing?.name.orEmpty()); setSingleLine() }
-        val dialog = AlertDialog.Builder(this).setTitle(if (existing == null) "Nova pasta" else "Renomear pasta").setView(name)
-            .setNegativeButton("Cancelar", null).setPositiveButton("Salvar", null).show()
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val value = name.text.toString().trim()
-            if (value.isEmpty()) { name.error = "Informe o nome"; return@setOnClickListener }
-            val f = existing?.copy(name = value) ?: Folder(freshId(), value, folderId)
-            save(library.copy(folders = library.folders.filterNot { it.id == f.id } + f)); dialog.dismiss(); show()
-        }
-    }
-    private fun settings() {
-        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        column.addView(ScrollView(this).apply { addView(list) }, LinearLayout.LayoutParams(-1, 0, 1f))
-        val appearance = surface()
-        appearance.addView(text("Aparência", 21, true))
-        appearance.addSpace(this, 9)
-        appearance.addView(text("Uma cor para acompanhar suas descobertas.", 13, color = subtle))
-        appearance.addSpace(this, 14)
-        val colors = listOf("#C9B7FC", "#FFD17E", "#BCE5C8", "#FFB6CB", "#A9D9FA")
-        val colorRow = row()
-        colors.forEach { value ->
-            val color = Color.parseColor(value)
-            colorRow.addView(text(if (accent == color) "✓" else "", 18, true).apply {
-                gravity = Gravity.CENTER; background = outlined(color)
-                setOnClickListener { accent = color; prefs.edit().putInt("accent", accent).apply(); show() }
-            }, LinearLayout.LayoutParams(dp(38), dp(38)).apply { rightMargin = dp(10) })
-        }
-        appearance.addView(colorRow)
-        appearance.addSpace(this, 15)
-        appearance.addView(text("Tema", 13, true))
-        appearance.addView(action("Claro  ▾", Color.WHITE) { message("Tema claro selecionado") })
-        appearance.addSpace(this, 12)
-        appearance.addView(text("Tamanho dos cards", 13, true))
-        appearance.addView(action(if (prefs.getBoolean("compact", false)) "Compacto  ▾" else "Confortável  ▾", Color.WHITE) {
-            select("Tamanho dos cards", listOf("Confortável", "Compacto")) {
-                prefs.edit().putBoolean("compact", it == 1).apply(); show()
-            }
-        })
-        list.addView(appearance, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
-
-        val portable = surface()
-        portable.addView(text("Seus links vão com você", 21, true))
-        portable.addSpace(this, 9)
-        portable.addView(text("Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão.", 13, color = subtle))
-        portable.addSpace(this, 16)
-        portable.addView(action("Importar JSON / HTML", accent) {
-            startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*"), 1)
-        })
-        portable.addSpace(this, 11)
-        val exports = row()
-        exports.weighted(action("Exportar JSON", Color.WHITE) { export(false) }, dp(45))
-        exports.weighted(action("Exportar HTML", Color.WHITE) { export(true) }, dp(45))
-        portable.addView(exports)
-        list.addView(portable, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(16) })
-
-        val previewsPanel = surface()
-        previewsPanel.addView(text("Prévias automáticas", 21, true))
-        previewsPanel.addSpace(this, 9)
-        previewsPanel.addView(text("As imagens dos links são consultadas quando há internet. Quando não há prévia, o domínio aparece no card.", 13, color = subtle))
-        list.addView(previewsPanel)
-    }
-    private fun export(html: Boolean) {
-        exportHtml = html
-        val ext = if (html) "html" else "json"
-        startActivityForResult(Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
-            .setType(if (html) "text/html" else "application/json").putExtra(Intent.EXTRA_TITLE, "save-it.$ext"), 2)
-    }
-    override fun onActivityResult(code: Int, result: Int, data: Intent?) {
-        super.onActivityResult(code, result, data)
-        val uri = data?.data ?: return
-        if (result != RESULT_OK) return
-        val snapshot = library
-        val html = exportHtml
-        Thread {
-            runCatching {
-                if (code == 2) {
-                    requireNotNull(contentResolver.openOutputStream(uri, "wt")).bufferedWriter().use { it.write(if (html) snapshot.html() else snapshot.json()) }
-                    runOnUiThread { message("Arquivo exportado.") }
-                } else if (code == 1) {
-                    val text = requireNotNull(contentResolver.openInputStream(uri)).bufferedReader().use { reader ->
-                        val buf = CharArray(8192)
-                        buildString {
-                            while (true) {
-                                val n = reader.read(buf)
-                                if (n < 0) break
-                                require(length + n <= 12_000_000) { "Arquivo muito grande" }
-                                append(buf, 0, n)
-                            }
-                        }.trimStart('\uFEFF', ' ', '\n', '\r', '\t')
-                    }
-                    val incoming = if (text.startsWith("{")) Library.parseJson(text) else Library.parseHtml(text)
-                    runOnUiThread {
-                        if (isDestroyed || isFinishing) return@runOnUiThread
-                        AlertDialog.Builder(this).setTitle("Importar favoritos?")
-                            .setMessage("${incoming.links.size} links e ${incoming.folders.size} pastas. Links repetidos serão ignorados.")
-                            .setNegativeButton("Cancelar", null).setPositiveButton("Importar") { _, _ ->
-                                save(library.merge(incoming)); tab = 0; query = ""; show(); message("Importação concluída.")
-                            }.show()
-                    }
+            EXPORT_REQUEST -> {
+                exporting = false
+                if (uri != null) {
+                    runCatching {
+                        pendingExport.inputStream().use { backup ->
+                            checkNotNull(contentResolver.openOutputStream(uri)).use { backup.copyTo(it) }
+                        }
+                    }.onSuccess { toast("Arquivo exportado.") }
+                        .onFailure { toast("Não foi possível exportar o arquivo.") }
                 }
-            }.onFailure { runOnUiThread { message("Não foi possível processar o arquivo: " + it.localizedMessage.orEmpty()) } }
-        }.start()
+                pendingExport.delete()
+            }
+        }
     }
-    override fun onDestroy() { previews.shutdownNow(); super.onDestroy() }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("exporting", exporting)
+    }
+
+    override fun onDestroy() {
+        chooser?.onReceiveValue(null)
+        (web.parent as? ViewGroup)?.removeView(web)
+        web.destroy()
+        super.onDestroy()
+    }
+
+    private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+
+    companion object {
+        private const val ORIGIN = "https://appassets.androidplatform.net"
+        private const val APP_URL = "$ORIGIN/Save-It.html"
+        private const val IMPORT_REQUEST = 1
+        private const val EXPORT_REQUEST = 2
+    }
 }

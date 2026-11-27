@@ -1483,6 +1483,10 @@
           return validateBackup({ folders, bookmarks });
         }
         function download(name, content, type) {
+          if (android && typeof content === "string") {
+            android.postMessage(JSON.stringify({ action: "export", name, content, type }));
+            return;
+          }
           const url = URL.createObjectURL(new Blob([content], { type }));
           const a = document.createElement("a");
           a.href = url;
@@ -1571,6 +1575,9 @@
           image: "Imagem",
           game: "Jogo",
         };
+        const android = window.SaveItAndroid;
+        const isAndroid = Boolean(android) || /Android/i.test(navigator.userAgent);
+        if (isAndroid) document.getElementById("create-shortcut").remove();
         const KEY = "save-it:desktop:v1";
         let state;
         let loadError = "";
@@ -2202,7 +2209,7 @@
                   : exportHTML(state),
                 json ? "application/json" : "text/html",
               );
-              toast("Backup exportado.");
+              if (!android) toast("Backup exportado.");
             } catch (error) {
               toast(error.message);
             }
@@ -2312,8 +2319,65 @@
           ev.preventDefault();
           go("home");
         };
+        function setupAndroid(bridge) {
+          const send = (action, details = {}) =>
+            bridge.postMessage(JSON.stringify({ action, ...details }));
+          bridge.onmessage = (event) => {
+            const { legacy, accent, compact, shared = [] } = JSON.parse(event.data);
+            const incoming = [];
+            if (legacy && !state.androidMigrationComplete) {
+              const currentFolders = new Set(state.folders.map((f) => f.id));
+              state.folders.push(...(legacy.folders || [])
+                .filter((f) => !currentFolders.has(f.id))
+                .map((f) => ({ ...f, color: "#c9b9ff" })));
+              const currentBookmarks = new Set(state.bookmarks.map((b) => b.id));
+              state.bookmarks.push(...(legacy.bookmarks || [])
+                .filter((b) => !currentBookmarks.has(b.id))
+                .map((b) => ({ ...b, url: new URL(b.url).href, type: detectType(b.url) })));
+              if (accent) state.prefs.accent = accent;
+              if (compact) state.prefs.density = "compact";
+              state.androidMigrationComplete = true;
+            }
+            for (const original of shared) {
+              const url = new URL(original).href;
+              if (state.bookmarks.some((link) => link.url === url)) continue;
+              const entry = {
+                id: uid(), url, title: new URL(url).hostname, folderId: null,
+                type: detectType(url), image: initialImage(url), createdAt: Date.now(), done: false,
+              };
+              state.bookmarks.push(entry);
+              incoming.push(entry);
+            }
+            if (!legacy && !shared.length) return;
+            if (!save()) return;
+            if (legacy) send("migrated");
+            for (const url of shared) send("shared", { url });
+            if (incoming.length) {
+              if (modal.open) closeModal();
+              go("home");
+              toast(incoming.length === 1 ? "Link salvo no mural." : `${incoming.length} links salvos no mural.`);
+              if (state.prefs.remote) refreshEntries(incoming.filter((entry) => !entry.image));
+            } else {
+              render();
+              if (shared.length) toast("Este link já está na sua coleção.");
+            }
+          };
+          window.addEventListener("save-it-android-resume", () => send("ready"));
+          send("ready");
+        }
+
         render();
         if (loadError) toast(loadError);
+        if (android) {
+          setupAndroid(android);
+          document.addEventListener("click", (event) => {
+            const link = event.target.closest("a[target='_blank']");
+            if (link) {
+              event.preventDefault();
+              android.postMessage(JSON.stringify({ action: "open", url: link.href }));
+            }
+          });
+        }
 
         // ZIP "store" is sufficient for the two small Windows shortcut files.
         function shortcutArchive(files) {
@@ -2406,7 +2470,7 @@
 
         document
           .getElementById("create-shortcut")
-          .addEventListener("click", () => {
+          ?.addEventListener("click", () => {
             openModal(
               "Atalho para Windows",
               '<ol class="install-steps"><li>Guarde <strong>Save-It.html</strong> em uma pasta permanente e abra-o de lá.</li><li>Baixe o atalho e extraia o ZIP na mesma pasta do HTML. Deixe <strong>Save-It.ico</strong> nessa pasta.</li><li>Mova <strong>Save It!.url</strong> para a Área de Trabalho. Um duplo clique nele abre sua coleção local.</li></ol><div class="modal-actions"><button class="button primary" id="shortcut-zip">Baixar atalho com ícone</button></div>',
