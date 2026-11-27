@@ -62,6 +62,13 @@ async function inspectDevice(check) {
   await inspectDevice(async (evaluate, waitFor) => {
     await waitFor(hasCard(reel));
     await evaluate('document.querySelector("[data-nav=folders]").click()');
+    const filterGap = await evaluate(`document.querySelector('[data-status="pending"]').getBoundingClientRect().top
+      - document.querySelector(".folder-grid + .empty").getBoundingClientRect().bottom`);
+    assert.ok(Math.abs(filterGap - 16) < 1, "Espaço entre o quadro e os filtros de status: " + filterGap);
+    for (const status of ["done", "all", "pending"]) {
+      await evaluate(`document.querySelector('[data-status="${status}"]').click()`);
+      assert.equal(await evaluate('document.querySelector("[data-status].active").dataset.status'), status);
+    }
     const gap = await evaluate('innerHeight - document.querySelector(".dock").getBoundingClientRect().bottom');
     assert.ok(Math.abs(gap - 6) < 1, "Margem inferior da dock: " + gap);
     // A CSS-only check misses extra space between the WebView and the system bar.

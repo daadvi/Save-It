@@ -1,7 +1,7 @@
 name: Conferir compartilhamento no APK
 on:
   push:
-    branches: ['distribuicao/ui-v1.8.1']
+    branches: ['distribuicao/ui-v1.8.2']
 permissions:
   contents: read
 jobs:
@@ -28,7 +28,7 @@ jobs:
           profile: pixel_6
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: |
-            adb install downloads/Save-It-1.8.1.apk
+            adb install downloads/Save-It-1.8.2.apk
             adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
             node desktop/check-shared-video.cjs
             adb shell pm clear br.com.saveit
