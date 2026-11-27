@@ -173,7 +173,7 @@ class MainActivity : Activity() {
             }
             if (request.url.toString() != APP_URL) return null
             return WebResourceResponse("text/html", "UTF-8", 200, "OK",
-                mapOf("Content-Security-Policy" to "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https:; connect-src 'self' https://api.microlink.io; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"),
+                mapOf("Content-Security-Policy" to "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob: https:; connect-src 'self' https://api.microlink.io https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"),
                 assets.open("Save-It.html"))
         }
 

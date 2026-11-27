@@ -28,7 +28,9 @@ dependencies {
 }
 
 val webAssets = tasks.register<Sync>("syncWebAssets") {
-    from(rootProject.file("desktop/Save-It.html"))
+    from(providers.gradleProperty("saveItWebHtml").map { rootProject.file(it) }
+        .orElse(rootProject.file("desktop/Save-It.html")))
+    rename { "Save-It.html" }
     into(layout.buildDirectory.dir("generated/webAssets"))
 }
 android.sourceSets["main"].assets.srcDir(webAssets.map { it.destinationDir })

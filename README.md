@@ -41,3 +41,5 @@ Abra o projeto no Android Studio com o SDK 35 instalado, ou execute com JDK 17 o
 ```
 
 O APK para testes fica em `app/build/outputs/apk/debug/app-debug.apk`.
+
+O fluxo de conta, as regras do Firestore e a montagem do HTML e do APK com sincronização estão em [sync/README.md](sync/README.md).
