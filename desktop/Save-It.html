@@ -521,6 +521,24 @@
         letter-spacing: -0.4px;
         margin-bottom: 13px;
       }
+      .card h3 {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+      .detail-title {
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+      }
+      .detail-copy {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        line-height: 1.6;
+        margin-top: 18px;
+      }
+      .card-body { cursor: pointer; }
       .card h3 a {
         text-decoration: none;
       }
@@ -2182,6 +2200,11 @@
             )
             .join("")}</div>`;
         }
+        function excerpt(value, limit) {
+          const text = String(value || "").replace(/\s+/g, " ").trim();
+          const characters = Array.from(text);
+          return characters.length > limit ? characters.slice(0, limit).join("").trimEnd() + "…" : text;
+        }
         function card(b) {
           const f = state.folders.find((f) => f.id === b.folderId);
           const domain = new URL(b.url).hostname.replace(/^www\./, "");
@@ -2198,7 +2221,7 @@
                 : image
                   ? `<img src="${e(image)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
                   : `<div class="cover-fallback">${e(domain)}</div>`;
-          return `<article class="card ${e(b.style || "")} ${b.done ? "is-done" : ""}" data-id="${e(b.id)}"><div class="card-inner"><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer" class="cover" aria-label="Abrir ${e(b.title)}">${art}<span class="type-badge">${icon(b.type === "site" ? "link" : b.type)}${labels[b.type] || "Site"}</span></a><div class="card-body"><div class="domain">${e(domain)}</div><h3><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer">${e(b.title)}</a></h3>${b.description ? `<p class="card-description">${e(b.description)}</p>` : ""}<div class="card-footer"><span class="folder-label" style="background:${f?.color || "#e8e7e1"}" title="${e(
+          return `<article class="card ${e(b.style || "")} ${b.done ? "is-done" : ""}" data-id="${e(b.id)}"><div class="card-inner"><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer" class="cover" data-details="${e(b.id)}" aria-label="Ver detalhes de ${e(excerpt(b.title, 110))}">${art}<span class="type-badge">${icon(b.type === "site" ? "link" : b.type)}${labels[b.type] || "Site"}</span></a><div class="card-body"><div class="domain">${e(domain)}</div><h3><a href="${e(b.url)}" target="_blank" rel="noopener noreferrer" data-details="${e(b.id)}">${e(excerpt(b.title, 110))}</a></h3>${b.description ? `<p class="card-description">${e(excerpt(b.description, 180))}</p>` : ""}<div class="card-footer"><span class="folder-label" style="background:${f?.color || "#e8e7e1"}" title="${e(
             folderPath(state.folders, b.folderId)
               .map((f) => f.name)
               .join(" / ") || "Sem pasta",
@@ -2453,6 +2476,19 @@
           if (choiceDialog.open) closeChoices();
           previewToken++;
           dismissPopup(modal, afterClose);
+        }
+        function bookmarkDetails(id) {
+          const bookmark = state.bookmarks.find(item => item.id === id);
+          if (!bookmark) return;
+          const path = folderPath(state.folders, bookmark.folderId).map(item => item.name).join(" / ") || "Sem pasta";
+          openModal(
+            "Detalhes do marcador",
+            `<p class="hint">${e(path)}</p><h3 class="detail-title">${e(bookmark.title)}</h3>
+              ${bookmark.description ? `<p class="detail-copy">${e(bookmark.description)}</p>` : ""}
+              ${bookmark.note ? `<h3 style="margin-top:22px">Sua nota</h3><p class="detail-copy">${e(bookmark.note)}</p>` : ""}
+              <div class="modal-actions"><button type="button" class="button" data-close>Fechar</button>
+              <a class="button primary" href="${e(bookmark.url)}" target="_blank" rel="noopener noreferrer">Abrir link</a></div>`,
+          );
         }
         async function linkModal(id) {
           const b = state.bookmarks.find((b) => b.id === id);
@@ -2748,6 +2784,13 @@
           }
         });
         document.addEventListener("click", (ev) => {
+          const details = ev.target.closest("[data-details]");
+          const body = ev.target.closest(".card-body");
+          if (details || (body && !ev.target.closest("button, a"))) {
+            ev.preventDefault();
+            bookmarkDetails(details?.dataset.details || body.closest(".card").dataset.id);
+            return;
+          }
           const target = ev.target.closest("button");
           if (!target) return;
           if (target.dataset.nav) {
@@ -2976,7 +3019,7 @@
           setupAndroid(android);
           document.addEventListener("click", (event) => {
             const link = event.target.closest("a[target='_blank']");
-            if (link) {
+            if (link && !event.defaultPrevented) {
               event.preventDefault();
               android.postMessage(JSON.stringify({ action: "open", url: link.href }));
             }
