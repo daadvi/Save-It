@@ -1,7 +1,7 @@
 name: Publicar HTML e APK
 on:
   push:
-    tags: ['desktop-v*']
+    tags: ['desktop-v*', 'logo-v*']
 permissions:
   contents: write
 jobs:
@@ -28,6 +28,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          git show 25ef54b2153275e5f248fa04410520a3effdd74e:downloads/Save-It-1.1.0.apk > Save-It-1.1.0.apk
-          echo '5cf1f4b71a3cf5f72ffc5323ba1f61f40f621d6b2395cfb642e0e6ef30bcc8d1  Save-It-1.1.0.apk' | sha256sum -c -
-          gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.1.0.apk --verify-tag --latest --title 'Save It! para Windows e Android' --notes-file desktop/release.md
+          if [[ "$GITHUB_REF_NAME" == logo-v* ]]; then
+            git show db4608c6ed6ca9ee7a9e55249364e4a89c0d34f1:downloads/Save-It-1.2.0.apk > Save-It-1.2.0.apk
+            echo '618a70cb8ef3a487036eb1dd12b640ef5c17e8db116d09207379e5514838b613  Save-It-1.2.0.apk' | sha256sum -c -
+            gh release upload "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.2.0.apk --clobber
+          else
+            git show 25ef54b2153275e5f248fa04410520a3effdd74e:downloads/Save-It-1.1.0.apk > Save-It-1.1.0.apk
+            echo '5cf1f4b71a3cf5f72ffc5323ba1f61f40f621d6b2395cfb642e0e6ef30bcc8d1  Save-It-1.1.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.1.0.apk --verify-tag --latest --title 'Save It! para Windows e Android' --notes-file desktop/release.md
+          fi
