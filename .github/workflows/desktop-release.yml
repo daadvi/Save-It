@@ -24,14 +24,18 @@ jobs:
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
           node --test desktop/check-import.cjs
           node desktop/check.cjs
-          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0")) { node desktop/check-android.cjs }
+          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1")) { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.8.0 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.8.1 ]]; then
+            git show 92e63a4c3e5644ddc49a23e6d0af933fac2e36ef:downloads/Save-It-1.8.1.apk > Save-It-1.8.1.apk
+            echo 'eca5d17d179d829194758e44164509a7412300fb06ddfbcd0384c31e3e001f27  Save-It-1.8.1.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.8.1.apk --verify-tag --latest --title 'Save It! 1.8.1 — dock mais baixa no Android' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.8.0 ]]; then
             git show 0d5a3401f9534d4c0ddf1860eebf2e908ab88c7d:downloads/Save-It-1.8.0.apk > Save-It-1.8.0.apk
             echo 'c8331cbd3cf26f249b5be958a7ad348f9b3547dfeeba4f2895939b8ecaf72f3b  Save-It-1.8.0.apk' | sha256sum -c -
             gh release create "$GITHUB_REF_NAME" desktop/Save-It.html Save-It-1.8.0.apk --verify-tag --latest --title 'Save It! 1.8.0 — descrições e compartilhamento de vídeos' --notes-file desktop/release.md
