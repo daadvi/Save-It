@@ -48,14 +48,21 @@ async function pickDocument() {
     await evaluate('document.querySelector("[data-nav=settings]").click()');
     await evaluate('document.querySelector("#theme + button").click()');
     await waitFor('document.querySelector("#choice-dialog").open');
-    const rise = await evaluate(`(() => {
+    const motion = await evaluate(`(() => {
       const dialog = document.querySelector("#choice-dialog");
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const animation = getComputedStyle(dialog).animationName;
       const slide = dialog.getAnimations().find(animation => animation.animationName === "modal-enter");
-      if (!slide) return 0;
+      if (!slide) return { reduced, animation, rise: 0 };
+      slide.pause();
       slide.currentTime = 0;
-      return new DOMMatrix(getComputedStyle(dialog).transform).m42;
+      const rise = new DOMMatrix(getComputedStyle(dialog).transform).m42;
+      slide.play();
+      return { reduced, animation, rise };
     })()`);
-    assert.ok(rise >= 48, "O seletor começa abaixo da posição final");
+    if (motion.reduced) assert.equal(motion.animation, "none");
+    else assert.ok(motion.rise >= 48, "O seletor começa abaixo da posição final: " + JSON.stringify(motion));
+    console.log("Animação do seletor:", JSON.stringify(motion));
     assert.equal(await evaluate('document.querySelector("#choice-options [aria-pressed=true]").textContent.trim()'), "Claro");
     await evaluate('document.querySelectorAll("#choice-options button")[1].click()');
     await waitFor('document.documentElement.classList.contains("dark")');
