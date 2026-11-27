@@ -117,6 +117,7 @@ class MainActivity : Activity() {
             }.apply { textSize = 12f }, dp(48))
         }
         val header = row()
+        header.addView(ImageView(this).apply { setImageResource(br.com.saveit.R.drawable.bookmark) }, LinearLayout.LayoutParams(dp(42), dp(42)))
         header.weighted(label("Save It!", 34, true))
         header.addView(action("+ Link", accent) { linkEditor() })
         column.addView(header)
