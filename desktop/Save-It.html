@@ -377,18 +377,13 @@
         font-weight: 400;
       }
       .masonry {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        grid-auto-rows: 8px;
-        gap: 18px;
-        align-items: start;
-        grid-auto-flow: dense;
+        --masonry-columns: 4;
+        --masonry-gap: 18px;
+        position: relative;
       }
-      .card {
+      .masonry > .card {
+        position: absolute;
         min-width: 0;
-      }
-      .card.wide {
-        grid-column: span 2;
       }
       .card-inner {
         border: var(--line);
@@ -951,7 +946,7 @@
         font-size: 13px;
       }
       .list-mode .masonry {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        --masonry-columns: 5;
       }
       .dark {
         --paper: #22232a;
@@ -986,13 +981,13 @@
       }
       @media (min-width: 1500px) {
         .masonry {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
+          --masonry-columns: 5;
         }
       }
       @media (max-width: 1050px) {
         .masonry,
         .list-mode .masonry {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          --masonry-columns: 3;
         }
         .folder-grid {
           grid-template-columns: repeat(3, 1fr);
@@ -1075,12 +1070,8 @@
         }
         .masonry,
         .list-mode .masonry {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
-          grid-auto-rows: 8px;
-        }
-        .card.wide {
-          grid-column: span 2;
+          --masonry-columns: 2;
+          --masonry-gap: 14px;
         }
         .graphic-art {
           padding: 16px;
@@ -1194,10 +1185,7 @@
       @media (max-width: 370px) {
         .masonry,
         .list-mode .masonry {
-          grid-template-columns: 1fr;
-        }
-        .card.wide {
-          grid-column: auto;
+          --masonry-columns: 1;
         }
         .folder-grid {
           grid-template-columns: 1fr;
@@ -1419,11 +1407,6 @@
         --cover-short: 120px;
         --cover-medium: 165px;
         --cover-tall: 230px;
-      }
-      @media (min-width: 371px) {
-        .masonry .card:nth-child(6n + 4):not(.graphic):not(.tall):not(.normal) {
-          grid-column: span 2;
-        }
       }
       @media (max-width: 760px) {
         .masonry {
@@ -2477,22 +2460,70 @@
           });
           layoutCards();
         }
-        let observer;
+        let observedGrid;
+        let masonryWidth;
+        const masonryObserver = new ResizeObserver(([entry]) => {
+          if (entry.target === observedGrid && observedGrid.clientWidth !== masonryWidth) layoutCards();
+        });
+
         function layoutCards() {
-          observer?.disconnect();
           const grid = document.querySelector(".masonry");
-          if (!grid) return;
-          const gap = parseFloat(getComputedStyle(grid).rowGap);
-          const resize = (el) => {
-            el.parentElement.style.gridRowEnd = `span ${Math.ceil((el.getBoundingClientRect().height + gap) / (8 + gap))}`;
-          };
-          observer = new ResizeObserver((entries) =>
-            entries.forEach((x) => resize(x.target)),
+          if (grid !== observedGrid) {
+            masonryObserver.disconnect();
+            observedGrid = grid;
+            if (grid) masonryObserver.observe(grid);
+          }
+          if (!grid || !grid.clientWidth) return;
+          masonryWidth = grid.clientWidth;
+
+          const css = getComputedStyle(grid);
+          const columns = Number(css.getPropertyValue("--masonry-columns"));
+          const gap = parseFloat(css.getPropertyValue("--masonry-gap"));
+          const width = (masonryWidth - gap * (columns - 1)) / columns;
+          const wideWidth = width * 2 + gap;
+          const cards = Array.from(grid.children);
+          const canBeWide = cards.map(card =>
+            columns > 1 && (card.classList.contains("wide") || !card.matches(".graphic, .tall, .normal")),
           );
-          grid.querySelectorAll(".card-inner").forEach((el) => {
-            resize(el);
-            observer.observe(el);
+          const heights = (card) => card.getBoundingClientRect().height;
+
+          // Measure each size together so the browser only has to lay out each width once.
+          cards.forEach(card => { card.style.width = `${width}px`; });
+          const singleHeights = cards.map(heights);
+          cards.forEach((card, i) => {
+            if (canBeWide[i]) card.style.width = `${wideWidth}px`;
           });
+          const wideHeights = cards.map((card, i) => canBeWide[i] ? heights(card) : 0);
+
+          const bottoms = Array(columns).fill(0);
+          let nextWide = cards.length >= 4 ? Math.max(0, columns - 2) : 3;
+          cards.forEach((card, i) => {
+            let column = bottoms.indexOf(Math.min(...bottoms));
+            let doubleColumn = -1;
+            let lowestPair = Infinity;
+            if ((canBeWide[i] && i >= nextWide) || (columns > 1 && card.classList.contains("wide"))) {
+              for (let left = 0; left < columns - 1; left++) {
+                const level = Math.max(bottoms[left], bottoms[left + 1]);
+                if (Math.abs(bottoms[left] - bottoms[left + 1]) <= gap * 2 && level < lowestPair) {
+                  doubleColumn = left;
+                  lowestPair = level;
+                }
+              }
+            }
+            const wide = doubleColumn !== -1;
+            if (wide) {
+              column = doubleColumn;
+              nextWide = i + 6;
+            }
+            const top = wide ? lowestPair : bottoms[column];
+            const height = wide ? wideHeights[i] : singleHeights[i];
+            card.style.width = `${wide ? wideWidth : width}px`;
+            card.style.left = `${column * (width + gap)}px`;
+            card.style.top = `${top}px`;
+            bottoms[column] = top + height + gap;
+            if (wide) bottoms[column + 1] = bottoms[column];
+          });
+          grid.style.height = `${Math.max(0, ...bottoms.map(bottom => bottom - gap))}px`;
         }
         function render() {
           if (choiceDialog.open && main.contains(choiceTrigger)) closeChoices();
@@ -3273,6 +3304,7 @@
           closeModal();
         });
         window.addEventListener("resize", layoutCards);
+        document.fonts?.ready.then(layoutCards);
         window.addEventListener("storage", (ev) => {
           if (!accountClient && ev.key === KEY && ev.newValue) {
             try {
