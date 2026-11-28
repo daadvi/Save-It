@@ -92,7 +92,19 @@ async function credentials(page, email, submit = "Entrar") {
 
 async function tutorial(page) {
   await page.getByRole("heading", { name: "Como usar o Save It!" }).waitFor();
+  const next = page.locator("[data-guide-next]");
+  const back = page.locator("[data-guide-back]");
+  assert.equal(await back.isDisabled(), true);
+  await next.click();
+  await page.getByRole("heading", { name: "Organize suas pastas" }).waitFor();
+  await back.click();
+  await page.getByRole("heading", { name: "Salve um link" }).waitFor();
+  for (const title of ["Organize suas pastas", "Encontre o que guardou", "Marque como concluído", "Continue em outro dispositivo"]) {
+    await next.click();
+    await page.getByRole("heading", { name: title }).waitFor();
+  }
   await page.getByRole("button", { name: "Entendi", exact: true }).click();
+  await page.locator("#modal").waitFor({ state: "hidden" });
 }
 
 async function sync(page) {

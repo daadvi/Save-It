@@ -1507,12 +1507,172 @@
         min-height: 1.6em;
         overflow-wrap: anywhere;
       }
-      .tutorial-list {
-        padding-left: 1.4em;
-        line-height: 1.55;
+      @keyframes guide-lift {
+        from { opacity: 0; transform: translateY(14px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-      .tutorial-list li + li {
-        margin-top: 10px;
+      @keyframes guide-reveal {
+        from { clip-path: inset(0 0 100%); transform: translateY(12px); }
+        to { clip-path: inset(0); transform: translateY(0); }
+      }
+      @keyframes guide-slide {
+        from { opacity: 0; transform: translateX(var(--guide-offset, 22px)); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes guide-draw {
+        from { transform: scaleX(0); }
+        to { transform: scaleX(1); }
+      }
+      [data-account-panel="signup"]:not([hidden]) > h1 {
+        animation: guide-reveal 460ms cubic-bezier(.16, 1, .3, 1) both;
+      }
+      [data-account-panel="signup"]:not([hidden]) > p,
+      [data-account-panel="signup"]:not([hidden]) form > * {
+        animation: guide-lift 360ms cubic-bezier(.16, 1, .3, 1) both;
+        animation-delay: var(--entry-delay, 95ms);
+      }
+      [data-account-panel="signup"] form > :nth-child(2) { --entry-delay: 150ms; }
+      [data-account-panel="signup"] form > :nth-child(3) { --entry-delay: 195ms; }
+      [data-account-panel="signup"] form > :nth-child(4) { --entry-delay: 240ms; }
+      [data-account-panel="signup"] form > :nth-child(5) { --entry-delay: 280ms; }
+      [data-account-panel="signup"] > .account-links { --entry-delay: 320ms; }
+      [data-account-panel="signup"] input {
+        transition: box-shadow 180ms ease-out;
+      }
+      [data-account-panel="signup"] input:focus {
+        box-shadow: 4px 4px 0 var(--accent);
+      }
+      .guide-progress {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 16px 0;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .guide-track {
+        flex: 1;
+        height: 8px;
+        overflow: hidden;
+        border: 1px solid var(--ink);
+        border-radius: 3px;
+      }
+      .guide-track span {
+        display: block;
+        width: 100%;
+        height: 100%;
+        transform: scaleX(var(--guide-progress));
+        transform-origin: left;
+        background: var(--accent);
+        transition: transform 360ms cubic-bezier(.16, 1, .3, 1);
+      }
+      .guide-step { animation: guide-slide 380ms cubic-bezier(.16, 1, .3, 1) both; }
+      .guide-step[data-reverse] { --guide-offset: -22px; }
+      .guide-step h3 {
+        margin: 16px 0 6px;
+        font: 750 clamp(23px, 5vw, 31px)/1.13 "Segoe UI", sans-serif;
+        animation: guide-reveal 440ms cubic-bezier(.16, 1, .3, 1) 100ms both;
+      }
+      .guide-step p {
+        color: var(--muted);
+        line-height: 1.55;
+        animation: guide-lift 420ms cubic-bezier(.16, 1, .3, 1) 175ms both;
+      }
+      .guide-stage {
+        display: grid;
+        place-items: center;
+        min-height: 182px;
+        overflow: hidden;
+        padding: 18px 14px;
+        border: 2px solid #202020;
+        border-radius: 6px;
+        color: #202020;
+        background: var(--guide-tone);
+      }
+      .guide-demo {
+        position: relative;
+        display: grid;
+        gap: 10px;
+        width: min(100%, 278px);
+      }
+      .guide-tile {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        min-width: 0;
+        padding: 8px 11px;
+        border: 2px solid #202020;
+        border-radius: 5px;
+        box-shadow: 3px 3px 0 #202020;
+        background: #fffdf7;
+        font-size: 14px;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        animation: guide-lift 480ms cubic-bezier(.16, 1, .3, 1) 120ms both;
+      }
+      .guide-tile + .guide-tile { animation-delay: 295ms; }
+      .guide-tile:nth-child(3) { animation-delay: 450ms; }
+      .guide-tile svg, .guide-stamp svg, .guide-connection svg {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+      }
+      .guide-nested {
+        margin-left: 28px;
+        --guide-offset: -24px;
+        animation-name: guide-slide;
+      }
+      .guide-filter {
+        background: #ffd17e;
+        width: fit-content;
+        animation-name: confirm-stamp;
+      }
+      .guide-stamp {
+        display: grid;
+        place-items: center;
+        position: absolute;
+        right: -3px;
+        bottom: -5px;
+        width: 36px;
+        height: 36px;
+        border: 2px solid #202020;
+        border-radius: 5px;
+        box-shadow: 3px 3px 0 #202020;
+        background: #bce5c8;
+        animation: confirm-stamp 410ms cubic-bezier(.2, .7, .3, 1) 650ms both;
+      }
+      .guide-devices {
+        grid-template-columns: minmax(0, 1fr) 28px minmax(0, .78fr);
+        align-items: center;
+      }
+      .guide-device {
+        flex-direction: column;
+        text-align: center;
+        padding: 14px 5px;
+      }
+      .guide-device:last-child { animation-delay: 570ms; }
+      .guide-connection {
+        display: grid;
+        place-items: center;
+        animation: guide-slide 430ms ease-out 400ms both;
+      }
+      .guide-needle {
+        width: fit-content;
+        transform-origin: left;
+        animation: guide-draw 380ms ease-out 295ms both;
+      }
+      .guide-footer {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .guide-footer .primary { margin-left: auto; }
+      .guide-footer button { font-size: 14px; }
+      @media (prefers-reduced-motion: reduce) {
+        .guide-replay { display: none; }
       }
     </style>
   </head>
@@ -2557,17 +2717,86 @@
           dismissPopup(modal, afterClose);
         }
         function tutorial() {
-          openModal(
-            "Como usar o Save It!",
-            `<ol class="tutorial-list">
-              <li><strong>Salve um link.</strong> Toque em <strong>Salvar link</strong> e cole o endereço.
-                ${isAndroid ? "No Android, você também pode compartilhar um link de outro app com o Save It!." : ""}</li>
-              <li><strong>Organize em pastas.</strong> Crie uma pasta ou subpasta e escolha onde guardar cada marcador.</li>
-              <li><strong>Encontre e leia.</strong> Pesquise no mural, use os filtros ou toque no cartão para ver a descrição inteira.</li>
-              <li><strong>Marque como concluído.</strong> Use o visto no cartão para mover o marcador para a aba Concluídos.</li>
-              ${accountClient ? "<li><strong>Continue em outro dispositivo.</strong> Entre com a mesma conta para ver sua coleção. Confira a sincronização em Configurações.</li>" : ""}
-            </ol><div class="modal-actions"><button class="button primary" data-close>Entendi</button></div>`,
-          );
+          const stamp = `<span class="guide-stamp">${icon("check")}</span>`;
+          const steps = [
+            {
+              title: "Salve um link",
+              description: `Toque em <strong>Salvar link</strong> e cole o endereço.${isAndroid ? " No Android, você também pode compartilhar um link de outro app com o Save It!." : ""}`,
+              tone: "#c9b9ff",
+              scene: `<div class="guide-demo"><div class="guide-tile">${icon("link")} exemplo.com/artigo</div>
+                <div class="guide-tile guide-needle">${icon("plus")} Salvar</div>${stamp}</div>`,
+            },
+            {
+              title: "Organize suas pastas",
+              description: "Crie uma pasta ou subpasta. No menu do marcador, escolha onde guardar o link.",
+              tone: "#ffd17e",
+              scene: `<div class="guide-demo"><div class="guide-tile">${icon("folder")} Estudos</div>
+                <div class="guide-tile guide-nested">${icon("folder")} Referências</div>
+                <div class="guide-tile guide-nested">${icon("link")} Artigo salvo</div></div>`,
+            },
+            {
+              title: "Encontre o que guardou",
+              description: "Pesquise no mural, use os filtros e toque no cartão para ler a descrição inteira.",
+              tone: "#a9d9fa",
+              scene: `<div class="guide-demo"><div class="guide-tile">${icon("search")} Fotografia</div>
+                <div class="guide-tile guide-filter">${icon("video")} Vídeos</div>
+                <div class="guide-tile">${icon("link")} Guia de fotografia</div></div>`,
+            },
+            {
+              title: "Marque como concluído",
+              description: "Toque no visto do cartão para mover o marcador para a aba <strong>Concluídos</strong>.",
+              tone: "#bce5c8",
+              scene: `<div class="guide-demo"><div class="guide-tile">${icon("link")} Minha leitura</div>
+                <div class="guide-tile">${icon("done")} Concluídos</div>${stamp}</div>`,
+            },
+          ];
+          if (accountClient) steps.push({
+            title: "Continue em outro dispositivo",
+            description: "Entre com a mesma conta no Android e no computador. Veja o status da sincronização em <strong>Configurações</strong>.",
+            tone: "#ffb6cb",
+            scene: `<div class="guide-demo guide-devices">
+              <div class="guide-tile guide-device">${icon("home")} Computador</div>
+              <span class="guide-connection">${icon("link")}</span>
+              <div class="guide-tile guide-device">${icon("check")} Android</div></div>`,
+          });
+          let step = 0;
+          openModal("Como usar o Save It!", `
+            <div class="guide-progress">
+              <span data-guide-count></span>
+              <div class="guide-track" aria-hidden="true"><span></span></div>
+            </div>
+            <div data-guide-content></div>
+            <div class="guide-footer">
+              <button type="button" class="button small" data-guide-back>Voltar</button>
+              <button type="button" class="text-btn guide-replay" data-guide-replay aria-label="Rever animação">Rever</button>
+              <button type="button" class="button primary" data-guide-next></button>
+            </div>`);
+          const content = modalContent.querySelector("[data-guide-content]");
+          const counter = modalContent.querySelector("[data-guide-count]");
+          const back = modalContent.querySelector("[data-guide-back]");
+          const next = modalContent.querySelector("[data-guide-next]");
+          function showStep(reverse = false) {
+            const lesson = steps[step];
+            counter.textContent = `Etapa ${step + 1} de ${steps.length}`;
+            const progress = (step + 1) / steps.length;
+            modalContent.querySelector(".guide-track").style.setProperty("--guide-progress", progress);
+            content.innerHTML = `<section class="guide-step" ${reverse ? "data-reverse" : ""}>
+              <div class="guide-stage" style="--guide-tone:${lesson.tone}" aria-hidden="true">${lesson.scene}</div>
+              <h3 tabindex="-1">${lesson.title}</h3><p>${lesson.description}</p></section>`;
+            back.disabled = step === 0;
+            next.textContent = step === steps.length - 1 ? "Entendi" : "Próximo";
+            content.querySelector("h3").focus({ preventScroll: true });
+          }
+          back.onclick = () => { step--; showStep(true); };
+          next.onclick = () => {
+            if (step === steps.length - 1) closeModal();
+            else { step++; showStep(); }
+          };
+          modalContent.querySelector("[data-guide-replay]").onclick = () => {
+            const stage = content.querySelector(".guide-stage");
+            stage.replaceWith(stage.cloneNode(true));
+          };
+          showStep();
         }
         function bookmarkDetails(id) {
           const bookmark = state.bookmarks.find(item => item.id === id);
