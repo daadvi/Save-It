@@ -1,5 +1,3 @@
-O tutorial agora tem cinco etapas animadas para salvar links, organizar pastas, pesquisar, concluir marcadores e sincronizar dispositivos. O progresso acompanha a navegação, e cada cena pode ser revista. Abra **Configurações → Ver tutorial** a qualquer momento.
+Os cartões do mural, das pastas e dos concluídos agora se encaixam com menos espaços vazios. Os marcadores continuam com tamanhos variados, incluindo os formatos altos, largos e pequenos.
 
-Na tela **Criar conta**, o título e os campos entram em sequência e o campo ativo recebe destaque. Os efeitos respeitam a preferência por movimento reduzido.
-
-Baixe **Save-It-1.17.0.apk** para Android ou **Save-It.html** para o computador.
+Baixe **Save-It-1.17.1.apk** para Android ou **Save-It.html** para o computador.
