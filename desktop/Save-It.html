@@ -1489,7 +1489,7 @@
       .account-panel h1 {
         margin-top: 0;
       }
-      #account-title .highlight {
+      .account-panel h1 .highlight {
         color: #202020;
         background: var(--accent);
       }
@@ -1551,23 +1551,39 @@
       accept=".json,.html,.htm,application/json,text/html"
       hidden
     />
-    <section id="account-screen" hidden aria-labelledby="account-title">
+    <section id="account-screen" hidden aria-label="Conta do Save It!">
       <div class="panel account-panel">
-        <h1 id="account-title">Entre no <span class="highlight">Save It!</span></h1>
-        <p>Use a mesma conta no computador e no Android para acessar seus marcadores e pastas.</p>
-        <form novalidate>
-          <label class="field">E-mail<input type="email" name="email" autocomplete="username" required></label>
-          <label class="field">Senha<input type="password" name="password" autocomplete="current-password" required></label>
-          <div class="button-row">
-            <button class="button primary" type="submit" value="login">Entrar</button>
-            <button class="button" type="submit" value="signup">Criar conta</button>
-          </div>
-          <div class="account-links">
-            <button class="text-btn" type="submit" value="reset">Redefinir senha</button>
-            <button class="text-btn" type="submit" value="resend" hidden>Reenviar confirmação</button>
-          </div>
-          <p id="account-message" role="status" aria-live="polite"></p>
-        </form>
+        <section data-account-panel="login" aria-labelledby="account-title">
+          <h1 id="account-title" tabindex="-1">Entre no <span class="highlight">Save It!</span></h1>
+          <p>Use sua conta para acessar seus marcadores e pastas.</p>
+          <form novalidate>
+            <label class="field">E-mail<input type="email" name="email" autocomplete="username" required></label>
+            <label class="field">Senha<input type="password" name="password" autocomplete="current-password" required></label>
+            <div class="button-row">
+              <button class="button primary" type="submit" value="login">Entrar</button>
+            </div>
+            <div class="account-links">
+              <button class="text-btn" type="submit" value="reset">Redefinir senha</button>
+              <button class="text-btn" type="submit" value="resend" hidden>Reenviar confirmação</button>
+            </div>
+          </form>
+          <p>Primeira vez aqui? <button class="text-btn" type="button" data-account-mode="signup">Criar conta</button></p>
+        </section>
+        <section data-account-panel="signup" aria-labelledby="signup-title" hidden>
+          <h1 id="signup-title" tabindex="-1">Crie sua <span class="highlight">conta</span></h1>
+          <p>Use o mesmo e-mail no computador e no Android para sincronizar sua coleção.</p>
+          <form novalidate>
+            <label class="field">E-mail<input type="email" name="email" autocomplete="username" required></label>
+            <label class="field">Senha<input type="password" name="password" autocomplete="new-password" minlength="8" required aria-describedby="signup-password-hint"></label>
+            <p id="signup-password-hint" class="hint">Use pelo menos 8 caracteres.</p>
+            <label class="field">Confirme a senha<input type="password" name="confirmation" autocomplete="new-password" required></label>
+            <div class="button-row">
+              <button class="button primary" type="submit" value="signup">Criar conta</button>
+            </div>
+          </form>
+          <p class="account-links"><button class="text-btn" type="button" data-account-mode="login">Voltar para entrar</button></p>
+        </section>
+        <p id="account-message" role="status" aria-live="polite"></p>
       </div>
     </section>
     <!-- SAVE_IT_ACCOUNT -->

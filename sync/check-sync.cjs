@@ -72,9 +72,22 @@ async function open(browser, options = {}) {
 }
 
 async function credentials(page, email, submit = "Entrar") {
-  await page.getByLabel("E-mail").fill(email);
-  await page.getByLabel("Senha", { exact: true }).fill(password);
-  await page.getByRole("button", { name: submit, exact: true }).click();
+  if (submit === "Criar conta") {
+    await page.getByRole("button", { name: submit, exact: true }).click();
+    await page.getByRole("heading", { name: "Crie sua conta", exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Redefinir senha" }).isVisible(), false);
+    assert.equal(await page.getByRole("button", { name: "Entrar", exact: true }).isVisible(), false);
+  }
+  const panel = page.locator("[data-account-panel]:not([hidden])");
+  await panel.getByLabel("E-mail").fill(email);
+  await panel.getByLabel("Senha", { exact: true }).fill(password);
+  if (submit === "Criar conta") {
+    await panel.getByLabel("Confirme a senha").fill("senha-diferente");
+    await panel.getByRole("button", { name: submit, exact: true }).click();
+    await page.getByText("As senhas precisam ser iguais.", { exact: true }).waitFor();
+    await panel.getByLabel("Confirme a senha").fill(password);
+  }
+  await panel.getByRole("button", { name: submit, exact: true }).click();
 }
 
 async function tutorial(page) {
@@ -97,6 +110,9 @@ async function sync(page) {
     await computer.getByRole("heading", { name: "Entre no Save It!" }).waitFor();
     assert.equal(await computer.locator(".dock").isVisible(), false);
     await credentials(computer, email, "Criar conta");
+    await computer.getByRole("heading", { name: "Entre no Save It!" }).waitFor();
+    assert.equal(await computer.locator('[data-account-panel="login"] input[name="email"]').inputValue(), email);
+    assert.equal(await computer.locator('[data-account-panel="login"] input[name="password"]').inputValue(), "");
     await computer.getByText("Confirme seu e-mail pelo link enviado.", { exact: false }).waitFor({timeout:20000})
       .catch(async error => { throw new Error(await computer.locator("#account-message").textContent(), { cause: error }); });
     const unverified = await authRequest("signInWithPassword", { email, password, returnSecureToken: true });

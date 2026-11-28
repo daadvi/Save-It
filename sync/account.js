@@ -63,15 +63,44 @@
 
   window.startSaveItAccount = function(app) {
     const gate = document.querySelector("#account-screen");
-    const form = gate.querySelector("form");
+    const loginPanel = gate.querySelector('[data-account-panel="login"]');
+    const signupPanel = gate.querySelector('[data-account-panel="signup"]');
+    const login = loginPanel.querySelector("form");
+    const signup = signupPanel.querySelector("form");
     const message = gate.querySelector("#account-message");
-    const buttons = [...form.querySelectorAll("button")];
-    const email = form.elements.email, password = form.elements.password;
-    const resend = form.querySelector('[value="resend"]');
+    const buttons = [...gate.querySelectorAll("button")];
+    const resend = login.querySelector('[value="resend"]');
     const cachedKey = uid => storagePrefix + "data:" + uid;
-    let verificationToken = null;
+    let verification = null;
     let account = null;
     let timer;
+    let busy = false;
+
+    function clearPasswords() {
+      for (const input of gate.querySelectorAll('input[type="password"]')) input.value = "";
+    }
+
+    function updateResend() {
+      resend.hidden = verification?.email !== login.elements.email.value.trim();
+    }
+
+    function showPanel(mode, text = "", focus = true) {
+      const showSignup = mode === "signup";
+      const from = showSignup ? login : signup;
+      const to = showSignup ? signup : login;
+      if (!from.closest("section").hidden) to.elements.email.value = from.elements.email.value;
+      loginPanel.hidden = showSignup;
+      signupPanel.hidden = !showSignup;
+      clearPasswords();
+      updateResend();
+      message.textContent = text;
+      if (focus) to.closest("section").querySelector("h1").focus();
+    }
+
+    login.elements.email.addEventListener("input", updateResend);
+    for (const button of gate.querySelectorAll("[data-account-mode]")) {
+      button.addEventListener("click", () => showPanel(button.dataset.accountMode));
+    }
 
     function showGate(text = "") {
       document.documentElement.classList.add("account-locked");
@@ -213,7 +242,7 @@
     function activate(active) {
       gate.hidden = true;
       document.documentElement.classList.remove("account-locked");
-      password.value = "";
+      clearPasswords();
       app.open(collection(active.cache.data, active.cache.migrated));
     }
 
@@ -247,9 +276,8 @@
       clearTimeout(timer);
       localStorage.removeItem(sessionKey);
       account = null;
-      verificationToken = null;
-      resend.hidden = true;
-      password.value = "";
+      verification = null;
+      showPanel("login", "", false);
       app.lock();
       showGate(text);
     }
@@ -263,9 +291,12 @@
       OPERATION_NOT_ALLOWED: "O administrador precisa ativar a autenticação por e-mail.",
     };
 
-    form.addEventListener("submit", async event => {
+    gate.addEventListener("submit", async event => {
       event.preventDefault();
-      const action = event.submitter?.value || "login";
+      if (busy) return;
+      const form = event.target;
+      const { email, password, confirmation } = form.elements;
+      const action = form === signup ? "signup" : event.submitter?.value || "login";
       if (action !== "resend" && !email.reportValidity()) return;
       if (["login", "signup"].includes(action) && !password.reportValidity()) return;
       if (action === "signup" && password.value.length < 8) {
@@ -273,6 +304,13 @@
         password.focus();
         return;
       }
+      if (action === "signup" && !confirmation.reportValidity()) return;
+      if (action === "signup" && confirmation.value !== password.value) {
+        message.textContent = "As senhas precisam ser iguais.";
+        confirmation.focus();
+        return;
+      }
+      busy = true;
       buttons.forEach(button => button.disabled = true);
       message.textContent = "Aguarde…";
       try {
@@ -281,8 +319,8 @@
             .catch(error => { if (!error.message.includes("EMAIL_NOT_FOUND")) throw error; });
           message.textContent = "Se a conta existir, você receberá um e-mail para redefinir a senha.";
         } else if (action === "resend") {
-          if (!verificationToken) return;
-          await auth("sendOobCode", { requestType: "VERIFY_EMAIL", idToken: verificationToken });
+          if (!verification || verification.email !== email.value.trim()) return;
+          await auth("sendOobCode", { requestType: "VERIFY_EMAIL", idToken: verification.token });
           message.textContent = "Confira sua caixa de entrada para confirmar o e-mail e entrar.";
         } else {
           const result = await auth(action === "signup" ? "signUp" : "signInWithPassword",
@@ -290,10 +328,14 @@
           const session = fromAuth(result);
           const profile = await auth("lookup", { idToken: session.token });
           if (!profile.users?.[0]?.emailVerified) {
-            verificationToken = session.token;
-            resend.hidden = false;
-            if (action === "signup") await auth("sendOobCode", { requestType: "VERIFY_EMAIL", idToken: session.token });
-            message.textContent = "Confirme seu e-mail pelo link enviado. Depois, volte aqui e escolha Entrar.";
+            verification = { email: email.value.trim(), token: session.token };
+            const prompt = "Confirme seu e-mail pelo link enviado. Depois, volte aqui e escolha Entrar.";
+            if (action === "signup") {
+              showPanel("login");
+              await auth("sendOobCode", { requestType: "VERIFY_EMAIL", idToken: session.token });
+            }
+            updateResend();
+            message.textContent = prompt;
           } else {
             await connect(session, app.legacy);
           }
@@ -301,6 +343,7 @@
       } catch (error) {
         message.textContent = errors[error.message] || "Não foi possível concluir. Verifique a conexão e tente novamente.";
       } finally {
+        busy = false;
         buttons.forEach(button => button.disabled = false);
       }
     });
