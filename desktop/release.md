@@ -1,3 +1,5 @@
-**Entrar** e **Criar conta** agora são telas separadas. O cadastro pede a confirmação da senha e volta à tela de login com o e-mail preenchido. Para acessar a coleção, confirme o endereço pelo link enviado e entre com a mesma conta no Android e no computador.
+O tutorial agora tem cinco etapas animadas para salvar links, organizar pastas, pesquisar, concluir marcadores e sincronizar dispositivos. O progresso acompanha a navegação, e cada cena pode ser revista. Abra **Configurações → Ver tutorial** a qualquer momento.
 
-Baixe **Save-It-1.16.1.apk** para Android ou **Save-It.html** para o computador. Para atualizar o APK, instale a nova versão por cima da anterior. No computador, mantenha o HTML no mesmo caminho e abra no mesmo navegador.
+Na tela **Criar conta**, o título e os campos entram em sequência e o campo ativo recebe destaque. Os efeitos respeitam a preferência por movimento reduzido.
+
+Baixe **Save-It-1.17.0.apk** para Android ou **Save-It.html** para o computador.

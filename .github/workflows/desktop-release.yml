@@ -24,14 +24,20 @@ jobs:
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
           node --test desktop/check-import.cjs
           node desktop/check.cjs
-          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0", "ui-v1.14.1", "ui-v1.15.0", "ui-v1.16.0", "ui-v1.16.1")) { node desktop/check-android.cjs }
+          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0", "ui-v1.14.1", "ui-v1.15.0", "ui-v1.16.0", "ui-v1.16.1", "ui-v1.17.0")) { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.16.1 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.17.0 ]]; then
+            node sync/build-html.mjs sync/firebase-config.json Save-It.html
+            git show 34b97c919a872b5621acfeac98eaaa51803d0cde:downloads/Save-It-1.17.0.apk > Save-It-1.17.0.apk
+            echo 'f1a70e3c189abd0a01146b4d729529b9bd688e8b4d1204cc6331f2a0df7c4420  Save-It.html' | sha256sum -c -
+            echo 'bb21fc5eb42db29a8911899c5ba1169b9f1ead100c1d21118f500f91a66f0a4a  Save-It-1.17.0.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" Save-It.html Save-It-1.17.0.apk --verify-tag --latest --title 'Save It! 1.17.0 — tutorial animado e movimento no cadastro' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.16.1 ]]; then
             node sync/build-html.mjs sync/firebase-config.json Save-It.html
             git show 5506b4c3c8f9181d5788a0a9f05b51906ca2e652:downloads/Save-It-1.16.1.apk > Save-It-1.16.1.apk
             echo 'c398c52a910a4f1a579f5b42200e67ac0e330560a4b6e73a3081b6b85c98a2bc  Save-It.html' | sha256sum -c -
