@@ -24,14 +24,20 @@ jobs:
           $env:NODE_PATH = "$env:RUNNER_TEMP/browser-test/node_modules"
           node --test desktop/check-import.cjs
           node desktop/check.cjs
-          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0", "ui-v1.14.1", "ui-v1.15.0", "ui-v1.16.0")) { node desktop/check-android.cjs }
+          if ($env:GITHUB_REF_NAME -in @("ui-v1.6.0", "ui-v1.8.0", "ui-v1.8.1", "ui-v1.8.2", "ui-v1.9.0", "ui-v1.10.0", "ui-v1.12.0", "ui-v1.13.0", "ui-v1.14.0", "ui-v1.14.1", "ui-v1.15.0", "ui-v1.16.0", "ui-v1.16.1")) { node desktop/check-android.cjs }
       - name: Publicar os dois downloads
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" == ui-v1.16.0 ]]; then
+          if [[ "$GITHUB_REF_NAME" == ui-v1.16.1 ]]; then
+            node sync/build-html.mjs sync/firebase-config.json Save-It.html
+            git show 5506b4c3c8f9181d5788a0a9f05b51906ca2e652:downloads/Save-It-1.16.1.apk > Save-It-1.16.1.apk
+            echo 'c398c52a910a4f1a579f5b42200e67ac0e330560a4b6e73a3081b6b85c98a2bc  Save-It.html' | sha256sum -c -
+            echo '4a6f1366cb97d18796fdbebd6e65db5d2e9db6a337febbfd3242b1c06114098b  Save-It-1.16.1.apk' | sha256sum -c -
+            gh release create "$GITHUB_REF_NAME" Save-It.html Save-It-1.16.1.apk --verify-tag --latest --title 'Save It! 1.16.1 — telas separadas para login e cadastro' --notes-file desktop/release.md
+          elif [[ "$GITHUB_REF_NAME" == ui-v1.16.0 ]]; then
             node sync/build-html.mjs sync/firebase-config.json Save-It.html
             git show 43b5317fd4dd10f803b9af2c1c440a5616520621:downloads/Save-It-1.16.0.apk > Save-It-1.16.0.apk
             echo '828f1bccfe0782bc0a0d676e2ee7180682e41ffd603cec879914c6f813d6f9cb  Save-It.html' | sha256sum -c -
