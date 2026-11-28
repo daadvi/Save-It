@@ -14,4 +14,5 @@ const account = await readFile(new URL("./account.js", import.meta.url), "utf8")
 const settings = JSON.stringify({ projectId, apiKey, emulator });
 const placeholder = "<!-- SAVE_IT_ACCOUNT -->";
 if (!source.includes(placeholder)) throw new Error("Ponto de inclusão da conta ausente.");
-await writeFile(output, source.replace(placeholder, () => `<script>window.SaveItFirebase = ${settings};\n${account}\n</script>`));
+const html = source.replace(placeholder, () => `<script>window.SaveItFirebase = ${settings};\n${account}\n</script>`);
+await writeFile(output, html.replace(/\r\n/g, "\n"));
