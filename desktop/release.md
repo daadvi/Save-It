@@ -1,5 +1,5 @@
-Os cartões mostram até três linhas de título e três de descrição. Toque na imagem, no título ou no corpo do cartão para ver os detalhes com o texto completo e suas notas. Use **Abrir link** nessa janela para acessar o conteúdo original.
+Crie uma conta por e-mail e senha e confirme o endereço pelo link recebido. Entre com a mesma conta no Android e no computador para sincronizar marcadores, pastas, notas, itens concluídos e preferências. O primeiro acesso em cada dispositivo inclui um tutorial, disponível também em **Configurações**.
 
-A prévia limita o título a 110 caracteres e a descrição a 180 caracteres. O conteúdo completo continua salvo e disponível nos detalhes.
+Ao atualizar o Android, instale o novo APK por cima da versão anterior. No computador, abra o novo HTML no mesmo caminho e no mesmo navegador que você usava. A primeira conta usada nessa instalação incorpora a coleção local. Você também pode exportar a coleção antiga em JSON e importá-la na nova versão.
 
-Baixe **Save-It-1.15.0.apk** para Android ou **Save-It.html** para o computador.
+Baixe **Save-It-1.16.0.apk** para Android ou **Save-It.html** para o computador.

@@ -9,8 +9,8 @@ android {
         applicationId = "br.com.saveit"
         minSdk = 26
         targetSdk = 35
-        versionCode = 20
-        versionName = "1.15.0"
+        versionCode = 21
+        versionName = "1.16.0"
     }
     testOptions.unitTests.isIncludeAndroidResources = true
     compileOptions {
@@ -28,7 +28,9 @@ dependencies {
 }
 
 val webAssets = tasks.register<Sync>("syncWebAssets") {
-    from(rootProject.file("desktop/Save-It.html"))
+    from(providers.gradleProperty("saveItWebHtml").map { rootProject.file(it) }
+        .orElse(rootProject.file("desktop/Save-It.html")))
+    rename { "Save-It.html" }
     into(layout.buildDirectory.dir("generated/webAssets"))
 }
 android.sourceSets["main"].assets.srcDir(webAssets.map { it.destinationDir })

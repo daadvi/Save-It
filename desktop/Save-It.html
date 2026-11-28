@@ -1479,6 +1479,41 @@
           font-size: 12px;
         }
       }
+      .account-locked :is(.dock, main, .skip, .topbar > :not(.brand)) {
+        display: none;
+      }
+      #account-screen {
+        width: min(100% - 32px, 460px);
+        margin: clamp(30px, 8vw, 96px) auto;
+      }
+      .account-panel h1 {
+        margin-top: 0;
+      }
+      #account-title .highlight {
+        color: #202020;
+        background: var(--accent);
+      }
+      .account-panel p {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .account-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin: 16px 0;
+      }
+      #account-message {
+        min-height: 1.6em;
+        overflow-wrap: anywhere;
+      }
+      .tutorial-list {
+        padding-left: 1.4em;
+        line-height: 1.55;
+      }
+      .tutorial-list li + li {
+        margin-top: 10px;
+      }
     </style>
   </head>
   <body>
@@ -1516,6 +1551,26 @@
       accept=".json,.html,.htm,application/json,text/html"
       hidden
     />
+    <section id="account-screen" hidden aria-labelledby="account-title">
+      <div class="panel account-panel">
+        <h1 id="account-title">Entre no <span class="highlight">Save It!</span></h1>
+        <p>Use a mesma conta no computador e no Android para acessar seus marcadores e pastas.</p>
+        <form novalidate>
+          <label class="field">E-mail<input type="email" name="email" autocomplete="username" required></label>
+          <label class="field">Senha<input type="password" name="password" autocomplete="current-password" required></label>
+          <div class="button-row">
+            <button class="button primary" type="submit" value="login">Entrar</button>
+            <button class="button" type="submit" value="signup">Criar conta</button>
+          </div>
+          <div class="account-links">
+            <button class="text-btn" type="submit" value="reset">Redefinir senha</button>
+            <button class="text-btn" type="submit" value="resend" hidden>Reenviar confirmação</button>
+          </div>
+          <p id="account-message" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+    <!-- SAVE_IT_ACCOUNT -->
     <script>
       (() => {
         "use strict";
@@ -2038,13 +2093,12 @@
           loadError =
             "Não foi possível carregar os dados locais. Importe seu backup para restaurar.";
         }
-        state.prefs = {
-          accent: "#c9b9ff",
-          theme: "light",
-          density: "comfortable",
-          remote: true,
-          ...state.prefs,
-        };
+        const defaultPrefs = { accent: "#c9b9ff", theme: "light", density: "comfortable", remote: true };
+        state.prefs = { ...defaultPrefs, ...state.prefs };
+        const legacyState = state;
+        let accountClient = null;
+        let accountReady = !window.startSaveItAccount;
+        let requestAndroidInbox;
         let view = "home",
           folder = null,
           query = "",
@@ -2060,7 +2114,8 @@
           modalContent = document.querySelector("#modal-content");
         function save() {
           try {
-            localStorage.setItem(KEY, JSON.stringify(state));
+            if (accountClient) accountClient.save(state);
+            else localStorage.setItem(KEY, JSON.stringify(state));
             return true;
           } catch {
             const notice = document.querySelector("#local-notice");
@@ -2352,7 +2407,15 @@
               "Pequenos ajustes para uma coleção que é sua.",
               "",
             ) +
-            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button><button class="button" data-import="links">Importar só os links</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas neste navegador.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As descrições e as imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>Dados no computador</h2><p>Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes.</p></section></div>`;
+            `<div class="settings-grid"><section class="panel"><h2>Aparência</h2><p>Uma cor para acompanhar suas descobertas.</p><div class="swatches">${["#c9b9ff", "#ffd17e", "#bce5c8", "#ffb6cb", "#a9d9fa"].map((c) => `<button class="swatch ${state.prefs.accent === c ? "selected" : ""}" data-accent="${c}" style="background:${c}" aria-label="Cor ${c}" aria-pressed="${state.prefs.accent === c}">${state.prefs.accent === c ? "✓" : ""}</button>`).join("")}</div><label class="field">Tema<select id="theme"><option value="light" ${state.prefs.theme === "light" ? "selected" : ""}>Claro</option><option value="dark" ${state.prefs.theme === "dark" ? "selected" : ""}>Escuro</option></select></label><label class="field">Tamanho dos cards<select id="density"><option value="comfortable" ${state.prefs.density === "comfortable" ? "selected" : ""}>Confortável</option><option value="compact" ${state.prefs.density === "compact" ? "selected" : ""}>Compacto</option></select></label></section><section class="panel"><h2>Seus links vão com você</h2><p>Importe favoritos do navegador ou restaure um backup. O JSON preserva pastas, notas e conclusão. O HTML leva links e pastas para outros navegadores.</p><div class="button-row"><button class="button primary" data-import>Importar JSON / HTML</button><button class="button" data-import="links">Importar só os links</button></div><div class="button-row"><button class="button small" data-export="json">Exportar JSON</button><button class="button small" data-export="html">Exportar HTML</button></div><p class="hint">${state.bookmarks.length} marcadores e ${state.folders.length} pastas ${accountClient ? "nesta conta" : "neste navegador"}.</p></section><section class="panel"><h2>Prévias automáticas</h2><p>As descrições e as imagens são buscadas a partir do link. O Microlink recebe a URL para obter metadados; o thum.io pode gerar uma captura quando não há thumbnail. Links de imagens e vídeos usam seus próprios provedores.</p><label class="checkbox"><input id="remote" type="checkbox" ${state.prefs.remote ? "checked" : ""}>Permitir consultas e imagens externas</label><p class="hint">Evite URLs com tokens ou informações privadas. Quando desativado, os cards exibem apenas o domínio.</p><div class="button-row"><button class="button small" id="refresh-previews" ${!state.prefs.remote ? "disabled" : ""}>Atualizar prévias</button></div></section><section class="panel"><h2>${accountClient ? "Backup da coleção" : "Dados no computador"}</h2><p>${accountClient ? "Use a mesma conta em todos os seus dispositivos. Exporte um JSON se quiser guardar uma cópia da sua coleção fora do Save It!." : "Use o mesmo navegador e mantenha o arquivo HTML no mesmo caminho. Antes de mudar de pasta, trocar de navegador ou limpar seus dados, exporte um backup JSON. Para levar a coleção ao Android, importe esse backup em Ajustes."}</p></section></div>`;
+          const profile = accountClient?.profile();
+          const actions = '<button type="button" class="button" data-tutorial>Ver tutorial</button>';
+          main.insertAdjacentHTML("beforeend", profile
+            ? `<section class="panel" style="margin-top:25px"><h2>Conta</h2><p>${e(profile.email)}</p>
+                <p id="sync-status" role="status">${e(profile.status)}</p>
+                <div class="button-row"><button type="button" class="button primary" data-sync>Sincronizar agora</button>
+                ${actions}<button type="button" class="text-btn" data-logout>Sair da conta</button></div></section>`
+            : `<div class="button-row">${actions}</div>`);
         }
         const choiceDialog = document.querySelector("#choice-dialog");
         const choiceOptions = document.querySelector("#choice-options");
@@ -2476,6 +2539,19 @@
           if (choiceDialog.open) closeChoices();
           previewToken++;
           dismissPopup(modal, afterClose);
+        }
+        function tutorial() {
+          openModal(
+            "Como usar o Save It!",
+            `<ol class="tutorial-list">
+              <li><strong>Salve um link.</strong> Toque em <strong>Salvar link</strong> e cole o endereço.
+                ${isAndroid ? "No Android, você também pode compartilhar um link de outro app com o Save It!." : ""}</li>
+              <li><strong>Organize em pastas.</strong> Crie uma pasta ou subpasta e escolha onde guardar cada marcador.</li>
+              <li><strong>Encontre e leia.</strong> Pesquise no mural, use os filtros ou toque no cartão para ver a descrição inteira.</li>
+              <li><strong>Marque como concluído.</strong> Use o visto no cartão para mover o marcador para a aba Concluídos.</li>
+              ${accountClient ? "<li><strong>Continue em outro dispositivo.</strong> Entre com a mesma conta para ver sua coleção. Confira a sincronização em Configurações.</li>" : ""}
+            </ol><div class="modal-actions"><button class="button primary" data-close>Entendi</button></div>`,
+          );
         }
         function bookmarkDetails(id) {
           const bookmark = state.bookmarks.find(item => item.id === id);
@@ -2671,6 +2747,7 @@
             });
         }
         async function refreshEntries(entries, fillMissing = false) {
+          const owner = accountClient?.profile()?.uid;
           let count = 0;
           const queue = [...entries];
           async function worker() {
@@ -2678,6 +2755,7 @@
               const b = queue.shift();
               const url = b.url;
               const result = await metadata(url);
+              if (owner !== accountClient?.profile()?.uid || !accountReady) return;
               const existing = state.bookmarks.find(
                 (x) => x.id === b.id && x.url === url,
               );
@@ -2793,7 +2871,10 @@
           }
           const target = ev.target.closest("button");
           if (!target) return;
-          if (target.dataset.nav) {
+          if (target.hasAttribute("data-tutorial")) tutorial();
+          else if (target.hasAttribute("data-sync")) accountClient?.sync();
+          else if (target.hasAttribute("data-logout")) accountClient?.logout();
+          else if (target.dataset.nav) {
             go(target.dataset.nav);
             document.querySelector(".dock button.active").classList.add("dock-activated");
           } else if (target.hasAttribute("data-close")) closeModal();
@@ -2948,7 +3029,7 @@
         });
         window.addEventListener("resize", layoutCards);
         window.addEventListener("storage", (ev) => {
-          if (ev.key === KEY && ev.newValue) {
+          if (!accountClient && ev.key === KEY && ev.newValue) {
             try {
               const next = JSON.parse(ev.newValue);
               if (
@@ -2963,12 +3044,13 @@
         });
         document.querySelector(".brand").onclick = (ev) => {
           ev.preventDefault();
-          go("home");
+          if (accountReady) go("home");
         };
         function setupAndroid(bridge) {
           const send = (action, details = {}) =>
             bridge.postMessage(JSON.stringify({ action, ...details }));
           bridge.onmessage = (event) => {
+            if (!accountReady) return;
             const { legacy, accent, compact, shared = [], videos = [] } = JSON.parse(event.data);
             const incoming = [];
             if (legacy && !state.androidMigrationComplete) {
@@ -3009,12 +3091,11 @@
               if (shared.length) toast("Este link já está na sua coleção.");
             }
           };
-          window.addEventListener("save-it-android-resume", () => send("ready"));
-          send("ready");
+          requestAndroidInbox = () => { if (accountReady) send("ready"); };
+          window.addEventListener("save-it-android-resume", requestAndroidInbox);
+          requestAndroidInbox();
         }
 
-        render();
-        if (loadError) toast(loadError);
         if (android) {
           setupAndroid(android);
           document.addEventListener("click", (event) => {
@@ -3024,6 +3105,64 @@
               android.postMessage(JSON.stringify({ action: "open", url: link.href }));
             }
           });
+        }
+
+        if (window.startSaveItAccount) {
+          accountClient = window.startSaveItAccount({
+            legacy: legacyState,
+            migrate(current, previous) {
+              const merged = mergeBackup(current, previous);
+              const hasCloudPrefs = Object.keys(current.prefs).length > 0;
+              return {
+                ...current, ...merged,
+                prefs: hasCloudPrefs ? current.prefs : previous.prefs,
+                androidMigrationComplete: previous.androidMigrationComplete === true || current.androidMigrationComplete,
+              };
+            },
+            open(snapshot) {
+              state = snapshot;
+              state.prefs = { ...defaultPrefs, ...state.prefs };
+              accountReady = true;
+              go("home");
+              document.querySelector(".tagline").textContent = "Biblioteca sincronizada";
+              if (loadError) toast(loadError);
+              const user = accountClient.profile().uid;
+              const tutorialKey = KEY + ":tutorial:" + user;
+              if (localStorage.getItem(tutorialKey)) requestAndroidInbox?.();
+              else {
+                tutorial();
+                modal.addEventListener("close", () => {
+                  if (accountReady && accountClient.profile()?.uid === user) {
+                    localStorage.setItem(tutorialKey, "1");
+                    requestAndroidInbox?.();
+                  }
+                }, { once: true });
+              }
+            },
+            update(snapshot) {
+              state = snapshot;
+              state.prefs = { ...defaultPrefs, ...state.prefs };
+              if (folder && folder !== "none" && !state.folders.some(item => item.id === folder)) folder = null;
+              if (!modal.open && !choiceDialog.open &&
+                  !document.activeElement?.matches("input, textarea")) render();
+              else if (view !== "settings") renderCards();
+            },
+            lock() {
+              accountReady = false;
+              if (choiceDialog.open) finishPopupClose(choiceDialog);
+              if (modal.open) finishPopupClose(modal);
+              clearTimeout(toastTimer);
+              document.querySelector("#toast").classList.remove("show");
+              state = seed();
+              main.replaceChildren();
+              modalContent.replaceChildren();
+              choiceOptions.replaceChildren();
+            },
+          });
+          accountClient.start();
+        } else {
+          render();
+          if (loadError) toast(loadError);
         }
 
         // ZIP "store" is sufficient for the two small Windows shortcut files.
